@@ -57,6 +57,7 @@ message(" ")
 message( STATUS "Configuring Level 3 packages --" )
 add_dir_if_exists( VendorChecks ) # needs c4
 add_dir_if_exists( cdi_ipcress )
+add_dir_if_exists( compton )
 add_dir_if_exists( diagnostics )  # needs c4
 add_dir_if_exists( fit )          # needs linear
 add_dir_if_exists( meshReaders )  # needs c4
