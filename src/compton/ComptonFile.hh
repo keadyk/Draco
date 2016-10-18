@@ -20,30 +20,35 @@ namespace rtt_compton {
 class ComptonFile {
 
   public:
+  //! Constructor with default binary library type
   ComptonFile(std::string&, bool binary_=true);
+  //! Destructor
   ~ComptonFile();
 
-  // interface to data read:
+  //! Public interface to compton library reader
   std::vector<std::vector<std::vector<std::vector<double>>>> 
   read_csk_data();
 
-  // Accessors for evaluation points:
+  //! Accessor for angular evaluation points
   std::vector<double> get_xi_pts() { return xi_pts; };
+  //! Accessor for outgoing frequency evaluation points
   std::vector<double> get_gout_pts() { return gout_pts; };
+  //! Accessor for incoming frequency evaluation points
   std::vector<double> get_gin_pts() { return gin_pts; };
+  //! Accessor for electron temperature evaluation points
   std::vector<double> get_etemp_pts() { return etemp_pts; };
 
   private:
   // name of the file to be read
   std::string libfile;
 
-  // input file stream:
+  // input file stream for data processing
   std::ifstream csk_data;
 
-  // flag for binary file (default=true):
+  // flag for binary file (defaults to true in constructor)
   bool binary;
 
-  // evaluation points for the CSK (all except etemp read from data library):
+  // evaluation points for the CSK (read from data library):
   std::vector<double> gin_pts, gout_pts, xi_pts, etemp_pts;
 
   // read the csk library in binary format
