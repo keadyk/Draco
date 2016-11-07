@@ -38,6 +38,13 @@ class ComptonFile {
   //! Accessor for electron temperature evaluation points
   std::vector<double> get_etemp_pts() { return etemp_pts; };
 
+  //! Accessor for outgoing freqency breakpoints (Lagrange library)
+  std::vector<double> get_gout_breakpts() { return gout_breakpts; };
+  //! Accessor for outgoing freqency breakpoints (Lagrange library)
+  std::vector<double> get_gin_breakpts() { return gin_breakpts; };
+  //! Accessor for outgoing freqency breakpoints (Lagrange library)
+  std::vector<double> get_etemp_breakpts() { return etemp_breakpts; };
+
   private:
   // name of the file to be read
   std::string libfile;
@@ -50,6 +57,8 @@ class ComptonFile {
 
   // evaluation points for the CSK (read from data library):
   std::vector<double> gin_pts, gout_pts, xi_pts, etemp_pts;
+  // additional data for the Lagrange CSK library:
+  std::vector<double> gin_breakpts, gout_breakpts, etemp_breakpts;
 
   // read the csk library in binary format
   std::vector<std::vector<std::vector<std::vector<double>>>> 
@@ -58,6 +67,10 @@ class ComptonFile {
   // read the csk library in ascii format
   std::vector<std::vector<std::vector<std::vector<double>>>> 
   read_ascii_csk_data();
+
+  // read the lagrange csk library in ascii format
+  std::vector<std::vector<std::vector<std::vector<double>>>> 
+  read_lagrange_ascii_csk_data();
 
 };
 
