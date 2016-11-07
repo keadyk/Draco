@@ -114,6 +114,24 @@ void tst_binread(rtt_dsxx::ScalarUnitTest& ut)
   
 }
 
+void tst_lagrange_asciiread(rtt_dsxx::ScalarUnitTest& ut)
+{
+  std::cout << "=== Testing ascii CSK Lagrange library read ===" << std::endl;
+  // ----------------------------------------------- //
+  // Test the data file "lagrange_csk_ascii"         //
+  // ----------------------------------------------- //
+  FAILMSG("Ascii CSK Lagrange library test not implemented yet :D");
+}
+
+void tst_lagrange_binread(rtt_dsxx::ScalarUnitTest& ut)
+{
+  std::cout << "== Testing binary CSK Lagrange library read ==" << std::endl;
+  // ----------------------------------------------- //
+  // Test the data file "lagrange_csk_binary"        //
+  // ----------------------------------------------- //
+  FAILMSG("Binary CSK Lagrange library test not implemented yet :D");
+}
+
 void check_points(rtt_dsxx::ScalarUnitTest& ut, 
                     const std::vector<double>&gin_pts,
                     const std::vector<double>&gout_pts, 
@@ -205,6 +223,8 @@ int main(int argc, char *argv[])
   try {
     tst_asciiread(ut);
     tst_binread(ut);
+    tst_lagrange_asciiread(ut);
+    tst_lagrange_binread(ut);
   }
   UT_EPILOG(ut);
   return 0;
