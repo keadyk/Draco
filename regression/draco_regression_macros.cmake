@@ -90,9 +90,13 @@ win32$ set work_dir=c:/full/path/to/work_dir
   elseif( ${sitename} MATCHES "ml[0-9]+" OR
       ${sitename} MATCHES "ml-fey"       OR
       ${sitename} STREQUAL "ml")
-  set( sitename "Moonlight" )
+    set( sitename "Moonlight" )
   elseif( ${sitename} MATCHES "cn[0-9]+" OR ${sitename} MATCHES "darwin-fe")
      set( sitename "Darwin" )
+  elseif( ${sitename} MATCHES "sn[0-9]+" OR
+      ${sitename} MATCHES "sn-fey" OR
+      ${sitename} STREQUAL "sn")
+     set( sitename "Snow" )
   endif()
   message( "sitename = ${sitename}")
   set( CTEST_SITE ${sitename} )
@@ -258,84 +262,71 @@ macro( parse_args )
   # default compiler name based on platform
   if( WIN32 )
     set( compiler_short_name "cl" )
-  else()
-    set( compiler_short_name "gcc" )
+  endif()
+
+  unset(compiler_version)
+  if( DEFINED ENV{LCOMPILERVER} )
+    set( compiler_version $ENV{LCOMPILERVER} )
+  elseif( "$ENV{CXX}" MATCHES ".*[-]([0-9]+[.][0-9]+[.-][0-9]+).*" )
+    string( REGEX REPLACE ".*[-]([0-9]+[.][0-9]+[.-][0-9]+).*" "\\1"
+      compiler_version "$ENV{CXX}" )
   endif()
 
   # refine compiler short name.
   set(USE_CUDA OFF)
   if( "$ENV{CXX}" MATCHES "pgCC" OR "$ENV{CXX}" MATCHES "pgc[+][+]" )
-    if( "$ENV{CXX}" MATCHES ".*[-]([0-9]+[.][0-9]+[.-][0-9]+).*" )
-      string( REGEX REPLACE ".*[-]([0-9]+[.][0-9]+[.-][0-9]+).*" "\\1"
-        compiler_version "$ENV{CXX}" )
-      set( compiler_short_name "pgi-${compiler_version}" )
-    else()
-      set( compiler_short_name "pgi" )
-    endif()
+    set( compiler_short_name "pgi" )
   elseif("$ENV{CXX}" MATCHES "clang" )
-    if( "$ENV{CXX}" MATCHES ".*[-]([0-9]+[.][0-9]+[.-][0-9]+).*" )
-      string( REGEX REPLACE ".*[-]([0-9]+[.][0-9]+[.-][0-9]+).*" "\\1"
-        compiler_version "$ENV{CXX}" )
-      set( compiler_short_name "clang-${compiler_version}" )
-    else()
-      set( compiler_short_name "clang" )
-    endif()
+    set( compiler_short_name "clang" )
   elseif("$ENV{CXX}" MATCHES "icpc" )
-     if( ${work_dir} MATCHES ".*[-]([0-9]+[.][0-9]+[.-][0-9]+).*" )
-        string( REGEX REPLACE ".*[-]([0-9]+[.][0-9]+[.-][0-9]+).*" "\\1"
-           compiler_version ${work_dir} )
-     elseif( NOT "$ENV{LCOMPILERVER}x" STREQUAL "x" )
-        set( compiler_version $ENV{LCOMPILERVER} )
-     endif()
-     if( ${work_dir} MATCHES ".*cuda.*" )
-        set( compiler_version "${compiler_version}-cuda" )
-        set(USE_CUDA ON)
-     elseif( ${work_dir} MATCHES ".*fulldiagnostics.*" )
-        set( compiler_version "${compiler_version}-fulldiagnostics" )
-        set( FULLDIAGNOSTICS "DRACO_DIAGNOSTICS:STRING=7")
-#DRACO_TIMING:STRING=2 <-- breaks milagro tests (python cannot parse output).
-     elseif( ${work_dir} MATCHES "intel-nr" )
-        set( RNG_NR "ENABLE_RNG_NR:BOOL=ON" )
-        set( compiler_version "${compiler_version}-nr" )
-     elseif( ${work_dir} MATCHES "intel-perfbench" )
-       set( compiler_version "${compiler_version}-perfbench" )
-     endif()
-     if( "${compiler_version}x" STREQUAL "x" )
-        set( compiler_short_name "intel" )
-     else()
-        set( compiler_short_name "intel-${compiler_version}" )
-     endif()
+    set( compiler_short_name "intel" )
   elseif( DEFINED ENV{PE_ENV} )
     # Trinity define this variable to define the flavor of the PrgEnv module
-    # currently laoded.
+    # currently loaded.
     if( $ENV{PE_ENV} MATCHES "INTEL")
       set( compiler_short_name "intel" )
     elseif( $ENV{PE_ENV} MATCHES "PGI")
       set( compiler_short_name "pgi" )
+    elseif( $ENV{PE_ENV} MATCHES "CRAY")
+      set( compiler_short_name "cray" )
+    elseif( $ENV{PE_ENV} MATCHES "GNU")
+      set( compiler_short_name "gcc" )
     endif()
-    if( ${work_dir} MATCHES ".*[-]([0-9]+[.][0-9]+[.-][0-9]+).*" )
-      string( REGEX REPLACE ".*[-]([0-9]+[.][0-9]+[.-][0-9]+).*" "\\1"
-        compiler_version ${work_dir} )
+    if( NOT DEFINED compiler_version )
+      if( ${work_dir} MATCHES ".*[-]([0-9]+[.][0-9]+[.-][0-9]+).*" )
+        string( REGEX REPLACE ".*[-]([0-9]+[.][0-9]+[.-][0-9]+).*" "\\1"
+          compiler_version ${work_dir} )
+      endif()
     endif()
-    if( NOT "${compiler_version}x" STREQUAL "x" )
-      set( compiler_short_name "${compiler_short_name}-${compiler_version}" )
-    endif()
-  elseif( "$ENV{CC}" MATCHES ".*gcc[-]([0-9]+[.][0-9]+[.-][0-9]+).*" )
-    # /scratch/vendors/gcc-5.3.0/bin/gcc
-    string( REGEX REPLACE ".*gcc[-]([0-9]+[.][0-9]+[.-][0-9]+).*" "\\1"
-      compiler_version $ENV{CC} )
-    set( compiler_short_name "gcc-${compiler_version}" )
   elseif( "$ENV{CC}" MATCHES "gcc" )
+    set(compiler_short_name "gcc" )
     # /usr/bin/gcc
     # /ccs/codes/radtran/vendors/bullseyecoverage-8.9.75/bin/gcc
     execute_process( COMMAND $ENV{CC} --version
       OUTPUT_VARIABLE cxx_version
       OUTPUT_STRIP_TRAILING_WHITESPACE )
     string( REGEX REPLACE "[^0-9]*([0-9]+).([0-9]+).([0-9]+).*" "\\1.\\2.\\3"
-      cxx_version ${cxx_version} )
-    set( compiler_short_name "gcc-${cxx_version}" )
+      compiler_version ${cxx_version} )
   else()
     set( compiler_short_name "unknown" )
+    set( compiler_version "unknown" )
+  endif()
+
+  # if known, append the compiler version
+  set( compiler_short_name "${compiler_short_name}-${compiler_version}" )
+
+  # append the compiler_short_name with the extra_params string (if any) and set
+  # some variables based on extra_param's value.
+  if( NOT "$ENV{extra_params}x" STREQUAL "x" )
+    set( compiler_short_name "${compiler_short_name}-$ENV{extra_params}" )
+    if( $ENV{extra_params} MATCHES "cuda" )
+      set(USE_CUDA ON)
+    elseif( $ENV{extra_params} MATCHES "fulldiagnostics" )
+      set( FULLDIAGNOSTICS "DRACO_DIAGNOSTICS:STRING=7")
+      # Note 'DRACO_TIMING:STRING=2' will break milagro tests (python cannot parse output).
+    elseif( $ENV{extra_params} MATCHES "nr" )
+      set( RNG_NR "ENABLE_RNG_NR:BOOL=ON" )
+    endif()
   endif()
 
   # Set the build name: (<platform>-<compiler>-<configuration>)
@@ -382,7 +373,7 @@ macro( parse_args )
     endif()
   endif()
 
-  if( NOT "$ENV{buildname_append}x" STREQUAL "x" )
+  if( DEFINED ENV{buildname_append} )
     set( CTEST_BUILD_NAME "${CTEST_BUILD_NAME}$ENV{buildname_append}" )
   endif()
 
@@ -563,7 +554,7 @@ macro( set_git_command gitpath )
     # clone was successful.
     # set( CTEST_GIT_UPDATE_CUSTOM "${CTEST_SOURCE_DIRECTORY}/regression/fetch_co.sh;${CTEST_GIT_COMMAND};${featurebranch}")
     if ( "${githost}x" STREQUAL "x" )
-      if( "${CTEST_CHECKOUT_COMMAND}" MATCHES "github" )
+      if( ${gitpath} MATCHES "Draco" )
         set( githost "github")
       else()
         set( githost "gitlab")
@@ -747,12 +738,10 @@ macro(set_pkg_work_dir this_pkg dep_pkg)
   # Assume that draco_work_dir is parallel to our current location, but only
   # replace the directory name preceeding the dashboard name.
   file( TO_CMAKE_PATH "$ENV{work_dir}" work_dir )
-  message("work_dir = ${work_dir}")
   string( REGEX REPLACE "${this_pkg}[/\\](Nightly|Experimental|Continuous)" "${dep_pkg}/\\1"
     ${dep_pkg}_work_dir ${work_dir} )
-  message("${dep_pkg}_work_dir = ${${dep_pkg}_work_dir}")
 
-  # If this is a coverage/nr build, link to the Debug/Release Draco files:
+  # If this is a special build, link to the normal Debug/Release Draco files:
   if( "${dep_pkg}" MATCHES "draco" )
     # coverage  build -> debug   version of Draco
     # nr        build -> release version of Draco
@@ -760,6 +749,7 @@ macro(set_pkg_work_dir this_pkg dep_pkg)
     # string( REPLACE "Coverage" "Debug"  ${dep_pkg}_work_dir ${${dep_pkg}_work_dir} )
     string( REPLACE "intel-nr"        "icpc" ${dep_pkg}_work_dir ${${dep_pkg}_work_dir} )
     string( REPLACE "intel-perfbench" "icpc" ${dep_pkg}_work_dir ${${dep_pkg}_work_dir} )
+    # string( REPLACE "-belosmods"      ""     ${dep_pkg}_work_dir ${${dep_pkg}_work_dir} )
 
     if( "${this_pkg}" MATCHES "jayenne" )
       # If this is jayenne, we might be building a pull request. Replace the PR

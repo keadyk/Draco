@@ -1,6 +1,6 @@
 #!/bin/bash
 ##---------------------------------------------------------------------------##
-## File  : regression/tt-job-launch.sh
+## File  : regression/sn-job-launch.sh
 ## Date  : Tuesday, May 31, 2016, 14:48 pm
 ## Author: Kelly Thompson
 ## Note  : Copyright (C) 2016, Los Alamos National Security, LLC.
@@ -22,9 +22,16 @@ nargs=${#args[@]}
 scriptname=${0##*/}
 host=`uname -n`
 
-export SHOWQ=/opt/MOAB/bin/showq
+export MOABHOMEDIR=/opt/MOAB
+extradirs="/opt/MOAB/bin /opt/MOAB/default/bin"
+for mydir in ${extradirs}; do
+   if test -z "`echo $PATH | grep $mydir`" && test -d $mydir; then
+      export PATH=${PATH}:${mydir}
+   fi
+done
+export SHOWQ=`which showq`
 
- # Dependencies: wait for these jobs to finish
+# Dependencies: wait for these jobs to finish
 dep_jobids=""
 for (( i=0; i < $nargs ; ++i )); do
    dep_jobids="${dep_jobids} ${args[$i]} "
@@ -72,7 +79,7 @@ esac
 
 # Banner
 echo "==========================================================================="
-echo "Trinitite Regression job launcher for ${subproj} - ${build_type} flavor."
+echo "Snow regression job launcher for ${subproj} - ${build_type} flavor."
 echo "==========================================================================="
 echo " "
 echo "Environment:"
@@ -91,9 +98,13 @@ echo "   rscriptdir     = ${rscriptdir}"
 echo "   logdir         = ${logdir}"
 echo "   dashboard_type = ${dashboard_type}"
 echo "   build_autodoc  = ${build_autodoc}"
+echo "   MOAB queue     = ${access_queue}"
 echo " "
 echo "   ${subproj}: dep_jobids = ${dep_jobids}"
 echo " "
+
+echo "module purge &> /dev/null"
+module purge &> /dev/null
 
 # Prerequisits:
 # Wait for all dependencies to be met before creating a new job
@@ -105,53 +116,48 @@ for jobid in ${dep_jobids}; do
     done
 done
 
-# Select haswell or knl partition
-# option '-e knl' will select KNL, default is haswell.
-case $extra_params in
-knl) partition_options="-lnodes=2:knl:ppn=68,walltime=8:00:00" ;;
-#knl) partition_options="-lnodes=2:ppn=68:knl,advres=quadflat,walltime=8:00:00" ;;
-*)   partition_options="-lnodes=4:haswell:ppn=32,walltime=8:00:00" ;;
-esac
+if ! test -d $logdir; then
+  mkdir -p $logdir
+  chgrp draco $logdir
+  chmod g+rwX $logdir
+  chmod g+s $logdir
+fi
 
-# Configure, Build on front end
-export REGRESSION_PHASE=cb
-echo "Configure and Build on the front end..."
-echo " "
-cmd="${rscriptdir}/tt-regress.msub >& ${logdir}/${machine_name_short}-${subproj}-${build_type}${epdash}${extra_params}${prdash}${featurebranch}-${REGRESSION_PHASE}.log"
+# Configure on the front end
+echo "Configure:"
+export REGRESSION_PHASE=c
+cmd="${rscriptdir}/sn-regress.msub >& ${logdir}/${machine_name_short}-${subproj}-${build_type}${epdash}${extra_params}${prdash}${featurebranch}-${REGRESSION_PHASE}.log"
 echo "${cmd}"
 eval "${cmd}"
 
-# Wait for CB (Configure and Build) before starting the testing and
-# reporting from the login node:
+# Build, Test on back end
 echo " "
-export REGRESSION_PHASE=t
-echo "Test from the login node..."
-echo " "
-cmd="/opt/MOAB/bin/msub -j oe -V -o ${logdir}/${machine_name_short}-${subproj}-${build_type}${epdash}${extra_params}${prdash}${featurebranch}-${REGRESSION_PHASE}.log ${partition_options} ${rscriptdir}/tt-regress.msub"
+echo "Build, Test:"
+export REGRESSION_PHASE=bt
+cmd="/opt/MOAB/bin/msub ${access_queue} -j oe -V -o ${logdir}/${machine_name_short}-${subproj}-${build_type}${epdash}${extra_params}${prdash}${featurebranch}-bt.log ${rscriptdir}/sn-regress.msub"
 echo "${cmd}"
 jobid=`eval ${cmd}`
-jobid=`echo $jobid | sed '/^$/d'`
-echo "jobid = ${jobid}"
+# trim extra whitespace from number
+jobid=`echo ${jobid//[^0-9]/}`
 
-# Wait for testing to finish
+# Wait for BT (build and test) to finish
 sleep 1m
-while test "`${SHOWQ} | grep $jobid`" != ""; do
-   ${SHOWQ} | grep $jobid
-   sleep 1m
+while test "`$SHOWQ | grep $jobid`" != ""; do
+   $SHOWQ | grep $jobid
+   sleep 5m
 done
 
 # Submit from the front end
 echo " "
 echo "Submit:"
 export REGRESSION_PHASE=s
-echo "- jobs done, now submitting ${build_type} results from tt-fey."
-cmd="${rscriptdir}/tt-regress.msub >& ${logdir}/${machine_name_short}-${subproj}-${build_type}${epdash}${extra_params}${prdash}${featurebranch}-${REGRESSION_PHASE}.log"
+echo "Jobs done, now submitting ${build_type} results from ${host}."
+cmd="${rscriptdir}/sn-regress.msub >& ${logdir}/${machine_name_short}-${subproj}-${build_type}${epdash}${extra_params}${prdash}${featurebranch}-s.log"
 echo "${cmd}"
 eval "${cmd}"
 
-# Submit from the front end
-echo "Jobs done."
+echo "All done."
 
 ##---------------------------------------------------------------------------##
-## End of tt-job-launch.sh
+## End of sn-job-launch.sh
 ##---------------------------------------------------------------------------##

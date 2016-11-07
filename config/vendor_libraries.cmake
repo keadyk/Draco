@@ -2,14 +2,10 @@
 # file   config/vendor_libraries.cmake
 # author Kelly Thompson <kgt@lanl.gov>
 # date   2010 June 6
-# brief  Setup Vendors
+# brief  Look for any libraries which are required at the top level.
 # note   Copyright (C) 2016 Los Alamos National Security, LLC.
 #        All rights reserved.
 #------------------------------------------------------------------------------#
-
-#
-# Look for any libraries which are required at the toplevel.
-#
 
 include( FeatureSummary )
 include( setupMPI ) # defines the macros setupMPILibrariesUnix|Windows
@@ -28,14 +24,15 @@ macro( setupLAPACKLibrariesUnix )
   message( STATUS "Looking for lapack...")
   set( lapack_FOUND FALSE )
   # Use LAPACK_LIB_DIR, if the user set it, to help find LAPACK.
-  foreach( version 3.4.1 3.4.2 3.5.0 )
+  foreach( version 3.4.1 3.4.2 3.5.0 3.6.0 3.6.1 )
     if( EXISTS  ${LAPACK_LIB_DIR}/cmake/lapack-${version} )
       list( APPEND CMAKE_PREFIX_PATH ${LAPACK_LIB_DIR}/cmake/lapack-${version} )
       find_package( lapack CONFIG )
     endif()
   endforeach()
   if( lapack_FOUND )
-    foreach( config NOCONFIG DEBUG RELEASE )
+    set( lapack_flavor "netlib")
+    foreach( config NOCONFIG DEBUG RELEASE RELWITHDEBINFO )
       get_target_property(tmp lapack IMPORTED_LOCATION_${config} )
       if( EXISTS ${tmp} )
         set( lapack_FOUND TRUE )
@@ -63,16 +60,15 @@ macro( setupLAPACKLibrariesUnix )
 
   mark_as_advanced( lapack_DIR lapack_FOUND )
 
-  # Above we tried to find lapack-config.cmake at
-  # $LAPACK_LIB_DIR/cmake/lapack.  This is a draco supplied version of
-  # lapack.  If that search failed, then try to find MKL on the local
-  # system.
+  # Above we tried to find lapack-config.cmake at $LAPACK_LIB_DIR/cmake/lapack.
+  # This is a draco supplied version of lapack.  If that search failed, then try
+  # to find MKL on the local system.
 
   if( NOT lapack_FOUND )
     if( NOT "$ENV{MKLROOT}x" STREQUAL "x")
       message( STATUS "Looking for lapack(MKL)...")
-      # CMake uses the 'Intel10_64lp' enum to indicate MKL.
-      # For details see the cmake documentation for FindBLAS.
+      # CMake uses the 'Intel10_64lp' enum to indicate MKL. For details see the
+      # cmake documentation for FindBLAS.
       set( BLA_VENDOR "Intel10_64lp" )
       find_package( BLAS QUIET )
 
@@ -97,6 +93,7 @@ macro( setupLAPACKLibrariesUnix )
       if( BLAS_FOUND )
         set( LAPACK_FOUND TRUE )
         set( lapack_FOUND ON )
+        set( lapack_flavor "mkl")
         add_library( lapack ${MKL_LIBRARY_TYPE} IMPORTED)
         add_library( blas   ${MKL_LIBRARY_TYPE} IMPORTED)
         add_library( blas::mkl_thread  ${MKL_LIBRARY_TYPE} IMPORTED)
@@ -133,14 +130,15 @@ macro( setupLAPACKLibrariesUnix )
 
   if( NOT lapack_FOUND )
       message( STATUS "Looking for lapack(OpenBLAS)...")
-      # CMake uses the 'OpenBLAS' enum to help the FindBLAS.cmake macro
-      # For details see the cmake documentation for FindBLAS.
+      # CMake uses the 'OpenBLAS' enum to help the FindBLAS.cmake macro. For
+      # details see the cmake documentation for FindBLAS.
       set( BLA_VENDOR "OpenBLAS" )
       find_package( BLAS QUIET )
 
       if( BLAS_FOUND )
         set( LAPACK_FOUND TRUE )
         set( lapack_FOUND ON )
+        set( lapack_flavor "openblas")
         add_library( lapack SHARED IMPORTED)
         add_library( blas   SHARED IMPORTED)
         set_target_properties( blas PROPERTIES
@@ -179,6 +177,38 @@ macro( setupLAPACKLibrariesUnix )
         message(STATUS "Looking for lapack(no cmake config)...NOTFOUND")
       endif()
 
+  endif()
+
+  # Export BLAS/LAPACK target information to draco-config.cmake
+
+  if( lapack_FOUND )
+      # Choose items for props list via:
+      # include(print_target_properties)
+      # print_targets_properties("blas;lapack")
+      set( props
+        GNUtoMS
+        IMPORTED_CONFIGURATIONS
+        IMPORTED_LINK_INTERFACE_LIBRARIES_DEBUG
+        IMPORTED_LINK_INTERFACE_LIBRARIES_RELEASE
+        IMPORTED_LINK_INTERFACE_LIBRARIES_RELWITHDEBINFO
+        IMPORTED_IMPLIB
+        IMPORTED_IMPLIB_DEBUG
+        IMPORTED_LINK_INTERFACE_LANGUAGES
+        INTERFACE_LINK_LIBRARIES
+        IMPORTED_LOCATION_DEBUG
+        IMPORTED_LOCATION_RELEASE
+        IMPORTED_LOCATION_RELWITHDEBINFO
+        IMPORTED
+        IMPORTED_SONAME_DEBUG
+        IMPORTED_SONAME_RELEASE
+        IMPORTED_SONAME_RELWITHDEBINFO
+        INTERFACE_INCLUDE_DIRECTORIES
+        POSITION_INDEPENDENT_CODE
+        IMPORTED_LOCATION )
+      if( "${lapack_flavor}" STREQUAL "mkl" )
+        save_vendor_imported_library_to_draco_config( "blas::mkl_thread;blas::mkl_core" "${props}" )
+      endif()
+      save_vendor_imported_library_to_draco_config( "lapack;blas" "${props}" )
   endif()
 
 endmacro()
@@ -394,9 +424,20 @@ macro( setupGSL )
       # Export GSL target information to draco-config.cmake
       # Choose items for props list via:
       # include(print_target_properties)
-      # echo_targets("GSL::gsl;GSL::gslcblas")
-      set( props "BUILD_WITH_INSTALL_RPATH;GNUtoMS;IMPORTED_CONFIGURATIONS;IMPORTED_IMPLIB;IMPORTED_IMPLIB_DEBUG;IMPORTED_LINK_INTERFACE_LANGUAGES;INTERFACE_LINK_LIBRARIES;IMPORTED_LOCATION_DEBUG;IMPORTED_LOCATION_RELEASE;IMPORTED;INSTALL_RPATH;INSTALL_RPATH_USE_LINK_PATH;INTERFACE_INCLUDE_DIRECTORIES;POSITION_INDEPENDENT_CODE;SKIP_BUILD_RPATH;IMPORTED_LOCATION" )
-
+      # print_targets_properties("GSL::gsl;GSL::gslcblas")
+      set( props
+        GNUtoMS
+        IMPORTED_CONFIGURATIONS
+        IMPORTED_IMPLIB
+        IMPORTED_IMPLIB_DEBUG
+        IMPORTED_LINK_INTERFACE_LANGUAGES
+        INTERFACE_LINK_LIBRARIES
+        IMPORTED_LOCATION_DEBUG
+        IMPORTED_LOCATION_RELEASE
+        IMPORTED
+        INTERFACE_INCLUDE_DIRECTORIES
+        POSITION_INDEPENDENT_CODE
+        IMPORTED_LOCATION )
       save_vendor_imported_library_to_draco_config(
         "GSL::gsl;GSL::gslcblas" "${props}" )
     else()
@@ -430,9 +471,8 @@ macro( setupParMETIS )
       # Export METIS target information to draco-config.cmake
       # Choose items for props list via:
       # include(print_target_properties)
-      # echo_targets("METIS::metis")
+      # print_targets_properties("METIS::metis")
       set( props
-        BUILD_WITH_INSTALL_RPATH
         GNUtoMS
         IMPORTED_CONFIGURATIONS
         IMPORTED_IMPLIB
@@ -442,11 +482,8 @@ macro( setupParMETIS )
         IMPORTED_LOCATION_DEBUG
         IMPORTED_LOCATION_RELEASE
         IMPORTED
-        INSTALL_RPATH
-        INSTALL_RPATH_USE_LINK_PATH
         INTERFACE_INCLUDE_DIRECTORIES
         POSITION_INDEPENDENT_CODE
-        SKIP_BUILD_RPATH
         IMPORTED_LOCATION )
 
       save_vendor_imported_library_to_draco_config( "METIS::metis" "${props}" )
@@ -476,9 +513,8 @@ macro( setupParMETIS )
       # Export ParMETIS target information to draco-config.cmake
       # Choose items for props list via:
       # include(print_target_properties)
-      # echo_targets("ParMETIS::parmetis")
+      # print_targets_properties("ParMETIS::parmetis")
       set( props
-        BUILD_WITH_INSTALL_RPATH
         GNUtoMS
         IMPORTED_CONFIGURATIONS
         IMPORTED_IMPLIB
@@ -488,11 +524,8 @@ macro( setupParMETIS )
         IMPORTED_LOCATION_DEBUG
         IMPORTED_LOCATION_RELEASE
         IMPORTED
-        INSTALL_RPATH
-        INSTALL_RPATH_USE_LINK_PATH
         INTERFACE_INCLUDE_DIRECTORIES
         POSITION_INDEPENDENT_CODE
-        SKIP_BUILD_RPATH
         IMPORTED_LOCATION )
 
       save_vendor_imported_library_to_draco_config(
@@ -529,9 +562,8 @@ macro( setupSuperLU_DIST )
       # Export SuperLU_DIST target information to draco-config.cmake
       # Choose items for props list via:
       # include(print_target_properties)
-      # echo_targets("SuperLU_DIST::superludist")
+      # print_targets_properties("SuperLU_DIST::superludist")
       set( props
-        BUILD_WITH_INSTALL_RPATH
         GNUtoMS
         IMPORTED_CONFIGURATIONS
         IMPORTED_IMPLIB
@@ -541,11 +573,8 @@ macro( setupSuperLU_DIST )
         IMPORTED_LOCATION_DEBUG
         IMPORTED_LOCATION_RELEASE
         IMPORTED
-        INSTALL_RPATH
-        INSTALL_RPATH_USE_LINK_PATH
         INTERFACE_INCLUDE_DIRECTORIES
         POSITION_INDEPENDENT_CODE
-        SKIP_BUILD_RPATH
         IMPORTED_LOCATION )
 
       save_vendor_imported_library_to_draco_config( "SuperLU_DIST::superludist" "${props}" )
@@ -769,6 +798,9 @@ macro( setupVendorLibraries )
   # General settings
   #
   setVendorVersionDefaults()
+  if( NOT TARGET blas )
+    setupLAPACKLibrariesUnix()
+  endif()
 
   # System specific settings
   if ( UNIX )
@@ -776,7 +808,6 @@ macro( setupVendorLibraries )
     if( NOT MPI_CXX_COMPILER )
       setupMPILibrariesUnix()
     endif()
-    setupLAPACKLibrariesUnix()
     setupVendorLibrariesUnix()
 
   elseif( WIN32 )
@@ -784,7 +815,6 @@ macro( setupVendorLibraries )
     if( NOT MPI_CXX_COMPILER )
       setupMPILibrariesWindows()
     endif()
-    setupLAPACKLibrariesUnix()
     setupVendorLibrariesWindows()
 
   else()
