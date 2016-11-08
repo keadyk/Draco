@@ -24,16 +24,25 @@ using rtt_dsxx::SP;
 using rtt_dsxx::soft_equiv;
 
 // prototype functions to check data:
-void check_points(rtt_dsxx::ScalarUnitTest&, const std::vector<double>&,
+void check_std_points(rtt_dsxx::ScalarUnitTest&, const std::vector<double>&,
                   const std::vector<double>&, const std::vector<double>&, 
                   const std::vector<double>&);
+void check_lag_points(rtt_dsxx::ScalarUnitTest&, const std::vector<double>&,
+                  const std::vector<double>&, const std::vector<double>&, 
+                  const std::vector<double>&, const std::vector<double>&,
+                  const std::vector<double>&, const std::vector<double>&);
 
-void check_data(rtt_dsxx::ScalarUnitTest&, 
+void check_std_data(rtt_dsxx::ScalarUnitTest&, 
+             const std::vector<std::vector<std::vector<std::vector<double>>>>&);
+
+void check_lag_data(rtt_dsxx::ScalarUnitTest&, 
              const std::vector<std::vector<std::vector<std::vector<double>>>>&);
 
 void tst_asciiread(rtt_dsxx::ScalarUnitTest& ut)
 {
+  std::cout << "==============================================" << std::endl;
   std::cout << "======= Testing ascii CSK library read =======" << std::endl;
+  std::cout << "==============================================" << std::endl;
   // ----------------------------------------------- //
   // Test the data file "csk_ascii"                  //
   // ----------------------------------------------- //
@@ -67,14 +76,16 @@ void tst_asciiread(rtt_dsxx::ScalarUnitTest& ut)
   std::vector<double> etemp_pts = spCompton->get_etemp_pts();
 
   // check the points to be sure they match the file:
-  check_points(ut, gin_pts, gout_pts, xi_pts, etemp_pts);
-  check_data(ut, tst_data);
+  check_std_points(ut, gin_pts, gout_pts, xi_pts, etemp_pts);
+  check_std_data(ut, tst_data);
 
 }
 
 void tst_binread(rtt_dsxx::ScalarUnitTest& ut)
 {
+  std::cout << "===============================================" << std::endl;
   std::cout << "======= Testing binary CSK library read =======" << std::endl;
+  std::cout << "===============================================" << std::endl;
   // ----------------------------------------------- //
   // Test the data file "csk_bin"                    //
   // ----------------------------------------------- //
@@ -108,31 +119,108 @@ void tst_binread(rtt_dsxx::ScalarUnitTest& ut)
   std::vector<double> etemp_pts = spCompton->get_etemp_pts();
 
   // check the points to be sure they match the file:
-  check_points(ut, gin_pts, gout_pts, xi_pts, etemp_pts);
-  check_data(ut, tst_data);
+  check_std_points(ut, gin_pts, gout_pts, xi_pts, etemp_pts);
+  check_std_data(ut, tst_data);
 
   
 }
 
 void tst_lagrange_asciiread(rtt_dsxx::ScalarUnitTest& ut)
 {
+  std::cout << "===============================================" << std::endl;
   std::cout << "=== Testing ascii CSK Lagrange library read ===" << std::endl;
+  std::cout << "===============================================" << std::endl;
   // ----------------------------------------------- //
   // Test the data file "lagrange_csk_ascii"         //
   // ----------------------------------------------- //
-  FAILMSG("Ascii CSK Lagrange library test not implemented yet :D");
+  std::string filename = "lagrange_csk_ascii.compton";
+
+  // Create a smart pointer to a ComptonFile object
+  SP<ComptonFile> spCompton;
+
+  // Try to instantiate the object.
+  try {
+    spCompton.reset(new ComptonFile(filename, false));
+  } catch (rtt_dsxx::assertion const &excpt) {
+    FAILMSG(excpt.what());
+    std::ostringstream message;
+    message << "Aborting tests because unable to instantiate "
+            << "ComptonFile object";
+    FAILMSG(message.str());
+    return;
+  }
+
+  // Success! Carry on, carry on.
+  PASSMSG("Successfully created ComptonFile object.");
+
+  // Next, read in the data
+  std::vector<std::vector<std::vector<std::vector<double>>>>tst_data = 
+    spCompton->read_lagrange_csk_data();
+
+  std::vector<double> gin_pts = spCompton->get_gin_pts();
+  std::vector<double> gin_breakpts = spCompton->get_gin_breakpts();
+  std::vector<double> gout_pts = spCompton->get_gout_pts();
+  std::vector<double> gout_breakpts = spCompton->get_gout_breakpts();
+  std::vector<double> xi_pts = spCompton->get_xi_pts();
+  std::vector<double> etemp_pts = spCompton->get_etemp_pts();
+  std::vector<double> etemp_breakpts = spCompton->get_etemp_breakpts();
+
+  check_lag_points(ut, gin_breakpts, gin_pts, gout_breakpts, gout_pts,
+                  xi_pts, etemp_breakpts, etemp_pts);
+  check_lag_data(ut, tst_data);
+
+  //FAILMSG("Ascii CSK Lagrange library test not completed yet :D");
 }
 
 void tst_lagrange_binread(rtt_dsxx::ScalarUnitTest& ut)
 {
-  std::cout << "== Testing binary CSK Lagrange library read ==" << std::endl;
+  std::cout << "================================================" << std::endl;
+  std::cout << "=== Testing binary CSK Lagrange library read ===" << std::endl;
+  std::cout << "================================================" << std::endl;
   // ----------------------------------------------- //
   // Test the data file "lagrange_csk_binary"        //
   // ----------------------------------------------- //
-  FAILMSG("Binary CSK Lagrange library test not implemented yet :D");
+  std::string filename = "lagrange_csk_binary.compton";
+
+  // Create a smart pointer to a ComptonFile object
+  SP<ComptonFile> spCompton;
+
+  // Try to instantiate the object.
+  try {
+    spCompton.reset(new ComptonFile(filename));
+  } catch (rtt_dsxx::assertion const &excpt) {
+    FAILMSG(excpt.what());
+    std::ostringstream message;
+    message << "Aborting tests because unable to instantiate "
+            << "ComptonFile object";
+    FAILMSG(message.str());
+    return;
+  }
+
+  // Success! Carry on, carry on.
+  PASSMSG("Successfully created ComptonFile object.");
+
+  // Next, read in the data
+  std::vector<std::vector<std::vector<std::vector<double>>>>tst_data = 
+    spCompton->read_lagrange_csk_data();
+
+  std::vector<double> gin_pts = spCompton->get_gin_pts();
+  std::vector<double> gin_breakpts = spCompton->get_gin_breakpts();
+  std::vector<double> gout_pts = spCompton->get_gout_pts();
+  std::vector<double> gout_breakpts = spCompton->get_gout_breakpts();
+  std::vector<double> xi_pts = spCompton->get_xi_pts();
+  std::vector<double> etemp_pts = spCompton->get_etemp_pts();
+  std::vector<double> etemp_breakpts = spCompton->get_etemp_breakpts();
+
+  check_lag_points(ut, gin_breakpts, gin_pts, gout_breakpts, gout_pts,
+                 xi_pts, etemp_breakpts, etemp_pts);
+  check_lag_data(ut, tst_data);
+
+  //FAILMSG("Binary CSK Lagrange library test not completed yet :D");
 }
 
-void check_points(rtt_dsxx::ScalarUnitTest& ut, 
+// point check for standard library:
+void check_std_points(rtt_dsxx::ScalarUnitTest& ut, 
                     const std::vector<double>&gin_pts,
                     const std::vector<double>&gout_pts, 
                     const std::vector<double>&xi_pts,
@@ -181,7 +269,68 @@ void check_points(rtt_dsxx::ScalarUnitTest& ut,
   } 
 }
 
-void check_data(rtt_dsxx::ScalarUnitTest& ut,
+// point check for standard library:
+void check_lag_points(rtt_dsxx::ScalarUnitTest& ut, 
+                    const std::vector<double>&gin_breakpts,
+                    const std::vector<double>&gin_pts, 
+                    const std::vector<double>&gout_breakpts,
+                    const std::vector<double>&gout_pts, 
+                    const std::vector<double>&xi_pts,
+                    const std::vector<double>&etemp_breakpts,
+                    const std::vector<double>&etemp_pts)
+{
+  // check the data sizes:
+  if(gin_breakpts.size() != 3) ITFAILS;
+  if(gin_pts.size() != 4) ITFAILS;
+  if(gout_breakpts.size() != 3) ITFAILS;
+  if(gout_pts.size()!= 4) ITFAILS;
+  if(etemp_breakpts.size() != 5) ITFAILS;
+  if(etemp_pts.size() != 8) ITFAILS;
+  if(xi_pts.size() != 5) ITFAILS;
+
+  // check the global breakpoints
+  if(!soft_equiv(gin_breakpts[0], 0.0)) ITFAILS;
+  if(!soft_equiv(gin_breakpts[1], 0.5)) ITFAILS;
+  if(!soft_equiv(gin_breakpts[2], 1.0)) ITFAILS;
+  if(!soft_equiv(gout_breakpts[0], 0.0)) ITFAILS;
+  if(!soft_equiv(gout_breakpts[1], 0.5)) ITFAILS;
+  if(!soft_equiv(gout_breakpts[2], 1.0)) ITFAILS;
+  if(!soft_equiv(etemp_breakpts[0], 0.0)) ITFAILS;
+  if(!soft_equiv(etemp_breakpts[1], 0.0223607, 1e-5)) ITFAILS;
+  if(!soft_equiv(etemp_breakpts[2], 0.5)) ITFAILS;
+  if(!soft_equiv(etemp_breakpts[3], 0.977639, 1e-5)) ITFAILS;
+  if(!soft_equiv(etemp_breakpts[4], 1.0)) ITFAILS;
+
+  // check the local evaluation points:
+  if(!soft_equiv(gin_pts[0], 0.105662, 1e-5)) ITFAILS;
+  if(!soft_equiv(gin_pts[1], 0.394338, 1e-5)) ITFAILS;
+  if(!soft_equiv(gin_pts[2], 0.605662, 1e-5)) ITFAILS;
+  if(!soft_equiv(gin_pts[3], 0.894338, 1e-5)) ITFAILS;
+
+  if(!soft_equiv(gout_pts[0], 0.105662, 1e-5)) ITFAILS;
+  if(!soft_equiv(gout_pts[1], 0.394338, 1e-5)) ITFAILS;
+  if(!soft_equiv(gout_pts[2], 0.605662, 1e-5)) ITFAILS;
+  if(!soft_equiv(gout_pts[3], 0.894338, 1e-5)) ITFAILS;
+
+  // check the uniformly-discretized angular data:
+  if(!soft_equiv(xi_pts[0], -0.8)) ITFAILS;
+  if(!soft_equiv(xi_pts[1], -0.4)) ITFAILS;
+  if(!soft_equiv(xi_pts[2], 0.0)) ITFAILS;
+  if(!soft_equiv(xi_pts[3], 0.4)) ITFAILS;
+  if(!soft_equiv(xi_pts[4], 0.8)) ITFAILS;
+
+  if (ut.numFails==0)
+  {
+    PASSMSG("Successfully read evaluation points from test library!");
+  }
+  else
+  {
+    FAILMSG("Did not read correct evaluation points from test library!");
+  } 
+}
+
+//data check for standard library:
+void check_std_data(rtt_dsxx::ScalarUnitTest& ut,
          const std::vector<std::vector<std::vector<std::vector<double>>>>& data)
 {
   // check selected data points from each regime:
@@ -206,6 +355,43 @@ void check_data(rtt_dsxx::ScalarUnitTest& ut,
   if(!soft_equiv(data[9][19][0][4]/2.31686e-23, 1.0, 1e-5)) ITFAILS;
   if(!soft_equiv(data[9][19][4][0], 0.124555, 1e-5)) ITFAILS;
   if(!soft_equiv(data[9][19][4][4], 0.0684458, 1e-5)) ITFAILS;
+
+  if (ut.numFails==0)
+  {
+    PASSMSG("Successfully read CSK data points from test library!");
+  }
+  else
+  {
+    FAILMSG("Did not read correct CSK data points from test library!");
+  } 
+}
+
+//data check for standard library:
+void check_lag_data(rtt_dsxx::ScalarUnitTest& ut,
+         const std::vector<std::vector<std::vector<std::vector<double>>>>& data)
+{
+  // check selected data points from each regime:
+  if(data.size() != 8) ITFAILS;
+  if(data[0].size() != 3*4) ITFAILS;
+  if(data[0][0].size() != 4) ITFAILS;
+  if(data[0][0][0].size() != 5) ITFAILS;
+  // SCALE small values and compare to one:
+  if(!soft_equiv(data[0][0][0][0]/1.29629e-44, 1.0, 1e-5)) ITFAILS;  
+  if(!soft_equiv(data[0][0][0][4]/2.59185e-48, 1.0, 1e-5)) ITFAILS; 
+  if(!soft_equiv(data[0][0][3][0]/1.85086e-57, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[0][0][3][4]/5.30928e-141, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[0][11][0][0]/1.58091e-51, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[0][11][0][4]/4.58293e-171, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[0][11][3][0]/3.51495e-147, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[0][11][3][4]/1.01014e-142, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[7][0][0][0]/2.20299e-46, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[7][0][0][4]/7.52173e-46, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[7][0][3][0]/1.03222e-46, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[7][0][3][4]/7.49007e-47, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[7][11][0][0]/1.20859e-47, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[7][11][0][4]/4.03163e-48, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[7][11][3][0]/3.09407e-47, 1.0, 1e-5)) ITFAILS;
+  if(!soft_equiv(data[7][11][3][4]/3.53662e-47, 1.0, 1e-5)) ITFAILS;
 
   if (ut.numFails==0)
   {
