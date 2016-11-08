@@ -36,6 +36,18 @@ ComptonFile::read_csk_data()
     return data;
 }
 
+// Interface to lagrange csk data read:
+std::vector<std::vector<std::vector<std::vector<double>>>> 
+ComptonFile::read_lagrange_csk_data()
+{
+    // return value
+    std::vector<std::vector<std::vector<std::vector<double>>>> data;
+    if(binary) { data = read_lagrange_binary_csk_data(); }
+    else { data = read_lagrange_ascii_csk_data(); }
+
+    return data;
+}
+
 
 // TODO: IF we go with the angular moment-based method, we should take out the 
 // xi-eval-pt read (line 2 of the file)
@@ -438,36 +450,6 @@ ComptonFile::read_lagrange_ascii_csk_data()
     // stringstream to pipe in values from the line:
     std::stringstream size_data(sizeline);
 
-/*
-  // first, write the data sizes:
-  // (# etemp breakpoints/subpoints) (# gin breakpoints/subpoints) 
-  // (# gout breakpoints/subpoints) (# xi points)
-  ascii_lib << etemp_breakpts.size() << " " << etemp_pts.size() << " " 
-            << gin_breakpts.size() << " " << gin_pts.size() << " "
-            << gout_breakpts.size() << " " << gout_pts.size() << " " 
-            << xi_pts.size() << std::endl;
-
-  // print the breakpoint values in etemp, gin, and gout:
-  for (size_t a = 0; a < etemp_breakpts.size(); a++) {
-    ascii_lib << etemp_breakpts[a] << " ";
-  }
-  ascii_lib << std::endl;
-  for (size_t b = 0; b < gin_breakpts.size(); b++) {
-    ascii_lib << gin_breakpts[b] << " ";    
-  }
-  ascii_lib << std::endl;
-  for (size_t c = 0; c < gout_breakpts.size(); c++) {
-    ascii_lib << gout_breakpts[c] << " ";    
-  }
-  ascii_lib << std::endl;
-  // print the xi values:
-  for (size_t f = 0; f < xi_pts.size(); f++) {
-    ascii_lib << xi_pts[f] << " ";
-  }
-  ascii_lib << std::endl;
-
-*/
-
     // grab the first two values (number of electron break pts/local pts)
     size_data >> n_etempbp;
     size_data >> n_etemp;
@@ -504,18 +486,18 @@ ComptonFile::read_lagrange_ascii_csk_data()
     }
 
     // assign sizes to the evaluation point vectors:
-    etemp_breakpts.assign(n_etemp, 0.0);
+    etemp_breakpts.assign(n_etempbp, 0.0);
     etemp_pts.assign(n_etemp, 0.0);
-    gin_breakpts.assign(n_gin, 0.0);
+    gin_breakpts.assign(n_ginbp, 0.0);
     gin_pts.assign(n_gin, 0.0);
-    gout_breakpts.assign(n_gout, 0.0);
+    gout_breakpts.assign(n_goutbp, 0.0);
     gout_pts.assign(n_gout, 0.0);
     xi_pts.assign(n_xi, 0.0); 
-    
+
     // initialize data container for the "raw" csk values:
     std::vector<std::vector<std::vector<std::vector<double>>>> raw_csk_data(
     n_etemp, std::vector<std::vector<std::vector<double>>>(
-    n_gin, std::vector<std::vector<double>>(
+    3*n_gin, std::vector<std::vector<double>>(
     n_gout, std::vector<double>(n_xi, 0.0))));
 
     // *************************************************************************
@@ -602,64 +584,71 @@ ComptonFile::read_lagrange_ascii_csk_data()
         std::stringstream line_data(file_line);
         line_data >> etemp;
         etemp_pts[a] = etemp;
-        for(size_t b = 0; b < n_gin; b++) // for each gamma in
+        // For each electron temperature, there are THREE regions of data,
+        // based on the location of the boundary layers in gamma in/gamma out
+        for(size_t k = 0; k < 3; k++)
         {
-            for(size_t c = 0; c < n_gout; c++) // for each gamma out
+            for(size_t b = 0; b < n_gin; b++) // for each gamma in
             {
-                // get a line of data from the file
-                getline(csk_data, file_line);
-                std::stringstream line_data(file_line);
-    
-                // get the first two values from the line:
-                double gin, gout;
-                line_data >> gin;
-                line_data >> gout;
-
-                // store the gamma in points for the first electron temperature:
-                if(a == 0)
-                {   
-                    if(c == 0)
-                    {
-                        if(!line_data.fail())
-                        {
-                            gin_pts[b] = gin;
-                        }
-                        else
-                        {
-                            Insist(0, "CSK data read failed!");
-                        } 
-                    }
-                    // store the gamma out points for the first gamma in:
-                    if(b == 0)
-                    {
-                        if(!line_data.fail())
-                        {
-                            gout_pts[c] = gout;
-                        }
-                        else
-                        {
-                            Insist(0, "CSK data read failed!");
-                        } 
-                    }
-                }
-                
-                for(size_t d = 0; d < n_xi; d++) // for each xi value
+                for(size_t c = 0; c < n_gout; c++) // for each gamma out
                 {
-                    double csk_value;
-                    // get the data value and store it!
-                    line_data >> csk_value;
-                    if(!line_data.fail())
-                    {
-                        raw_csk_data[a][b][c][d] = csk_value;
-                    }
-                    else
-                    {
-                        Insist(0, "CSK data read failed!");
+                    // get a line of data from the file
+                    getline(csk_data, file_line);
+                    std::stringstream line_data(file_line);
+        
+                    // get the first two values from the line:
+                    double gin, gout;
+                    line_data >> gin;
+                    line_data >> gout;
+                    // store the gamma in points for the first electron temperature:
+                    if(a == 0)
+                    {   
+                        if(c == 0)
+                        {
+                            if(!line_data.fail())
+                            {
+                                gin_pts[b] = gin;
+                            }
+                            else
+                            {
+                                Insist(0, "CSK data read failed!");
+                            } 
+                        }
+                        // store the gamma out points for the first gamma in:
+                        if(b == 0)
+                        {
+                            if(!line_data.fail())
+                            {
+                                gout_pts[c] = gout;
+                            }
+                            else
+                            {
+                                Insist(0, "CSK data read failed!");
+                            } 
+                        }
                     }
                     
-                } // end xi loop
-            } // end gamma out loop
-        } // end gamma in loop
+                    for(size_t d = 0; d < n_xi; d++) // for each xi value
+                    {
+                        double csk_value;
+                        // get the data value and store it!
+                        line_data >> csk_value;
+                        if(!line_data.fail())
+                        {
+                            raw_csk_data[a][k*gin_pts.size() + b][c][d] = csk_value;
+                        }
+                        else
+                        {
+                            Insist(0, "CSK data read failed!");
+                        }
+                        
+                    } // end xi loop
+                } // end gamma out loop
+            } // end gamma in loop
+            // discard the blank line...
+            std::string empty_line;
+            getline(csk_data, empty_line);
+        } // end loop over separate interpolation regions
     } // end electron temperature loop
 
     // *************************************************************************
@@ -669,6 +658,213 @@ ComptonFile::read_lagrange_ascii_csk_data()
 
     std::cout << "CSK data read successfully!" << std::endl;
     
+    return raw_csk_data;
+}
+
+std::vector<std::vector<std::vector<std::vector<double>>>> 
+ComptonFile::read_lagrange_binary_csk_data()
+{
+    // *************************************************************************
+    // ************************ OPEN THE DATA FILE *****************************
+    // *************************************************************************
+    // open the file:
+    csk_data.open(libfile, std::ios::binary);
+    
+    // *************************************************************************
+    // ********************* READ SIZES/ALLOCATE ARRAYS ************************
+    // *************************************************************************
+    // first line of the file tells us how to allocate the raw data array
+    // (which is the return value of the function:)
+    if (!csk_data.is_open())
+    {
+        std::ostringstream msg;
+        msg << "ACK, we failed to open " << libfile << "! ";
+        Insist(0, msg.str());
+    }
+
+    // *************************************************************************
+    // ************************* GET DATA ARRAY SIZES **************************
+    // *************************************************************************
+    // declare variables for number of eval pts in gamma in, gamma out, xi, and
+    // etemp:
+    size_t n_ginbp, n_goutbp, n_etempbp;
+    size_t n_gin, n_gout, n_xi, n_etemp;
+
+    // make a vector to hold the raw size data:
+    std::vector<char> size_data(7*sizeof(size_t));
+
+    // grab the first value (number of electron temp points)
+    csk_data.read(&size_data[0], 7*sizeof(size_t));
+
+    // check for failure
+    if (csk_data.fail())
+    {
+        Insist(0, "Failed to read CSK data sizes!");
+    }
+
+    // cast raw character data to size_t
+    std::memcpy(&n_etempbp, &size_data[0], sizeof(size_t));
+    std::memcpy(&n_etemp, &size_data[sizeof(size_t)], sizeof(size_t));
+
+    // cast raw character data to size_t
+    std::memcpy(&n_ginbp, &size_data[2*sizeof(size_t)], sizeof(size_t));
+    std::memcpy(&n_gin, &size_data[3*sizeof(size_t)], sizeof(size_t));
+
+    // cast raw character data to size_t
+    std::memcpy(&n_goutbp, &size_data[4*sizeof(size_t)], sizeof(size_t));
+    std::memcpy(&n_gout, &size_data[5*sizeof(size_t)], sizeof(size_t));
+
+    // cast raw character data to size_t
+    std::memcpy(&n_xi, &size_data[6*sizeof(size_t)], sizeof(size_t));
+
+    // assign sizes to the evaluation point vectors:
+    etemp_breakpts.assign(n_etempbp, 0.0);
+    etemp_pts.assign(n_etemp, 0.0);
+    gin_breakpts.assign(n_ginbp, 0.0);
+    gin_pts.assign(n_gin, 0.0);
+    gout_breakpts.assign(n_goutbp, 0.0);
+    gout_pts.assign(n_gout, 0.0);
+    xi_pts.assign(n_xi, 0.0); 
+   
+    // initialize data container for the "raw" csk values:
+    std::vector<std::vector<std::vector<std::vector<double>>>> raw_csk_data(
+    n_etemp, std::vector<std::vector<std::vector<double>>>(
+    3*n_gin, std::vector<std::vector<double>>(
+    n_gout, std::vector<double>(n_xi, 0.0))));
+
+    // *************************************************************************
+    // *********************** GET THE BREAKPOINTS *****************************
+    // *************************************************************************
+    // get the next n_xi * sizeof(double) bytes from the file
+    std::vector<char>etemp_data(n_etempbp*sizeof(double));
+    csk_data.read(&etemp_data[0], n_etempbp*sizeof(double)); 
+    // check for failure:
+    if(csk_data.fail())
+    {
+        Insist(0, "Failed to read electron temperature breakpoints!");
+    }
+
+    for(size_t m = 0; m < n_etempbp; m++)
+    {
+        double etempbp;
+        std::memcpy(&etempbp, &etemp_data[m*sizeof(double)], sizeof(double));    
+        etemp_breakpts[m] = etempbp;
+    }
+
+    // get the next n_xi * sizeof(double) bytes from the file
+    std::vector<char>gin_data(n_ginbp*sizeof(double));
+    csk_data.read(&gin_data[0], n_ginbp*sizeof(double)); 
+    // check for failure:
+    if(csk_data.fail())
+    {
+        Insist(0, "Failed to read gin breakpoints!");
+    }
+
+    for(size_t m = 0; m < n_ginbp; m++)
+    {
+        double ginbp;
+        std::memcpy(&ginbp, &gin_data[m*sizeof(double)], sizeof(double));    
+        gin_breakpts[m] = ginbp;
+    }
+
+    // get the next n_xi * sizeof(double) bytes from the file
+    std::vector<char>gout_data(n_goutbp*sizeof(double));
+    csk_data.read(&gout_data[0], n_goutbp*sizeof(double)); 
+    // check for failure:
+    if(csk_data.fail())
+    {
+        Insist(0, "Failed to read gout breakpoints!");
+    }
+
+    for(size_t m = 0; m < n_goutbp; m++)
+    {
+        double goutbp;
+        std::memcpy(&goutbp, &gout_data[m*sizeof(double)], sizeof(double));    
+        gout_breakpts[m] = goutbp;
+    }
+
+    // *************************************************************************
+    // ************************ GET THE XI POINTS ******************************
+    // *************************************************************************
+    // get the next n_xi * sizeof(double) bytes from the file
+    std::vector<char>xi_data(n_xi*sizeof(double));
+    csk_data.read(&xi_data[0], n_xi*sizeof(double)); 
+    // check for failure:
+    if(csk_data.fail())
+    {
+        Insist(0, "Failed to read xi eval points!");
+    }
+
+    for(size_t m = 0; m < n_xi; m++)
+    {
+        double xi;
+        std::memcpy(&xi, &xi_data[m*sizeof(double)], sizeof(double));    
+        xi_pts[m] = xi;
+    }
+
+    // *************************************************************************
+    // ************************** READ THE DATA ********************************
+    // *************************************************************************
+    for(size_t a = 0; a < n_etemp; a++) // for each electron temp expected
+    {
+        // get the electron temp for this block:
+        double etemp;
+        std::vector<char>etemp_val(sizeof(double));
+        csk_data.read(&etemp_val[0], sizeof(double));
+        memcpy(&etemp, &etemp_val[0], sizeof(double));
+        etemp_pts[a] = etemp;
+
+        // loop over the three regions in gin/gout, divided by boundary layers
+        for(int k=0; k<3; k++)
+        {
+          // get the data for the block:
+          std::vector<char>data_block(n_gin*n_gout*(n_xi+2)*sizeof(double));
+          csk_data.read(&data_block[0], n_gin*n_gout*(n_xi+2)*sizeof(double));
+
+          for(size_t b = 0; b < n_gin; b++) // for each gamma in
+          {
+              for(size_t c = 0; c < n_gout; c++) // for each gamma out
+              {
+                  // calculate the offset into the data array
+                  size_t offset = (b*n_gout + c) * (n_xi + 2)*sizeof(double);
+                  // get the first two values from the data block:
+                  double gin, gout;
+                  memcpy(&gin, &data_block[offset], sizeof(double));
+                  memcpy(&gout, &data_block[offset + sizeof(double)], sizeof(double));
+                  // store the gamma in points for the first electron temperature:
+                  if(a == 0)
+                  {   
+                      if(c == 0)
+                      {
+                          gin_pts[b] = gin;
+                      }
+                      // store the gamma out points for the first gamma in:
+                      if(b == 0)
+                      {
+                          gout_pts[c] = gout;
+                      }
+                  }
+                  // update the data offset
+                  offset += 2*sizeof(double);
+                  for(size_t d = 0; d < n_xi; d++) // for each xi value
+                  {
+                      double csk_value;
+                      // copy from the data array
+                      std::memcpy(&csk_value, &data_block[offset + d*sizeof(double)], sizeof(double));
+                      raw_csk_data[a][k*gin_pts.size() + b][c][d] = csk_value;
+                      
+                  } // end xi loop
+              } // end gamma out loop
+          } // end gamma in loop
+      }
+    } // end electron temperature loop
+
+    // *************************************************************************
+    // ************************** CLOSE THE FILE *******************************
+    // *************************************************************************
+    csk_data.close();
+
+    std::cout << "CSK data read successfully!" << std::endl;
     return raw_csk_data;
 }
 

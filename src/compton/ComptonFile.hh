@@ -29,6 +29,10 @@ class ComptonFile {
   std::vector<std::vector<std::vector<std::vector<double>>>> 
   read_csk_data();
 
+  //! Public interface to compton library reader
+  std::vector<std::vector<std::vector<std::vector<double>>>> 
+  read_lagrange_csk_data();
+
   //! Accessor for angular evaluation points
   std::vector<double> get_xi_pts() { return xi_pts; };
   //! Accessor for outgoing frequency evaluation points
@@ -71,6 +75,10 @@ class ComptonFile {
   // read the lagrange csk library in ascii format
   std::vector<std::vector<std::vector<std::vector<double>>>> 
   read_lagrange_ascii_csk_data();
+
+  // read the lagrange csk library in binary format
+  std::vector<std::vector<std::vector<std::vector<double>>>> 
+  read_lagrange_binary_csk_data();
 
 };
 
