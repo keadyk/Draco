@@ -168,8 +168,6 @@ void tst_lagrange_asciiread(rtt_dsxx::ScalarUnitTest& ut)
   check_lag_points(ut, gin_breakpts, gin_pts, gout_breakpts, gout_pts,
                   xi_pts, etemp_breakpts, etemp_pts);
   check_lag_data(ut, tst_data);
-
-  //FAILMSG("Ascii CSK Lagrange library test not completed yet :D");
 }
 
 void tst_lagrange_binread(rtt_dsxx::ScalarUnitTest& ut)
@@ -215,8 +213,6 @@ void tst_lagrange_binread(rtt_dsxx::ScalarUnitTest& ut)
   check_lag_points(ut, gin_breakpts, gin_pts, gout_breakpts, gout_pts,
                  xi_pts, etemp_breakpts, etemp_pts);
   check_lag_data(ut, tst_data);
-
-  //FAILMSG("Binary CSK Lagrange library test not completed yet :D");
 }
 
 // point check for standard library:
