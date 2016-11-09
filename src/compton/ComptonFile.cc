@@ -105,8 +105,7 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_binary_csk_data()
     
     // initialize data container for the "raw" csk values:
     bool lagrange = false;
-    SP_CompData Cdata;
-    Cdata.reset(new ComptonData(n_etemp, n_gin, n_gout, n_xi, lagrange));
+    SP_CompData Cdata(new ComptonData(n_etemp, n_gin, n_gout, n_xi, lagrange));
 
     // *************************************************************************
     // ************************ GET THE XI POINTS ******************************
@@ -307,8 +306,7 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_ascii_csk_data()
 
     // initialize data container for the "raw" csk values:
     bool lagrange = false;
-    SP_CompData Cdata;
-    Cdata.reset(new ComptonData(n_etemp, n_gin, n_gout, n_xi, lagrange));
+    SP_CompData Cdata(new ComptonData(n_etemp, n_gin, n_gout, n_xi, lagrange));
 
     // *************************************************************************
     // ************************ GET THE XI POINTS ******************************
@@ -760,8 +758,7 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_lagrange_binary_csk_data()
     std::memcpy(&n_xi, &size_data[6*sizeof(size_t)], sizeof(size_t));
    
     // initialize data container for the "raw" csk values:
-    SP_CompData Cdata;
-    Cdata.reset(new ComptonData(n_etemp, n_gin, n_gout, n_xi));
+    SP_CompData Cdata(new ComptonData(n_etemp, n_gin, n_gout, n_xi));
 
     // *************************************************************************
     // *********************** GET THE BREAKPOINTS *****************************
