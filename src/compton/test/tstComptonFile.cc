@@ -8,6 +8,7 @@
  *         All rights reserved.
  */
 #include "ComptonFile.hh"
+#include "ComptonData.hh"
 #include "ds++/Assert.hh"
 #include "ds++/Release.hh"
 #include "ds++/ScalarUnitTest.hh"
@@ -20,6 +21,7 @@
 #include <vector>
 
 using rtt_compton::ComptonFile;
+using rtt_compton::ComptonData;
 using rtt_dsxx::SP;
 using rtt_dsxx::soft_equiv;
 
@@ -67,13 +69,15 @@ void tst_asciiread(rtt_dsxx::ScalarUnitTest& ut)
   PASSMSG("Successfully created ComptonFile object.");
 
   // Next, read in the data
-  std::vector<std::vector<std::vector<std::vector<double>>>>tst_data = 
+  SP<ComptonData>spData =
     spCompton->read_csk_data();
 
-  std::vector<double> gin_pts = spCompton->get_gin_pts();
-  std::vector<double> gout_pts = spCompton->get_gout_pts();
-  std::vector<double> xi_pts = spCompton->get_xi_pts();
-  std::vector<double> etemp_pts = spCompton->get_etemp_pts();
+  std::vector<std::vector<std::vector<std::vector<double>>>>tst_data = 
+                                                        spData->get_csk_data();
+  std::vector<double> gin_pts = spData->get_gin_pts();
+  std::vector<double> gout_pts = spData->get_gout_pts();
+  std::vector<double> xi_pts = spData->get_xi_pts();
+  std::vector<double> etemp_pts = spData->get_etemp_pts();
 
   // check the points to be sure they match the file:
   check_std_points(ut, gin_pts, gout_pts, xi_pts, etemp_pts);
@@ -110,13 +114,14 @@ void tst_binread(rtt_dsxx::ScalarUnitTest& ut)
   PASSMSG("Successfully created ComptonFile object.");
 
   // Next, read in the data
-  std::vector<std::vector<std::vector<std::vector<double>>>>tst_data = 
-    spCompton->read_csk_data();
+  SP<ComptonData>spData = spCompton->read_csk_data();
 
-  std::vector<double> gin_pts = spCompton->get_gin_pts();
-  std::vector<double> gout_pts = spCompton->get_gout_pts();
-  std::vector<double> xi_pts = spCompton->get_xi_pts();
-  std::vector<double> etemp_pts = spCompton->get_etemp_pts();
+  std::vector<std::vector<std::vector<std::vector<double>>>>tst_data = 
+                                                        spData->get_csk_data();
+  std::vector<double> gin_pts = spData->get_gin_pts();
+  std::vector<double> gout_pts = spData->get_gout_pts();
+  std::vector<double> xi_pts = spData->get_xi_pts();
+  std::vector<double> etemp_pts = spData->get_etemp_pts();
 
   // check the points to be sure they match the file:
   check_std_points(ut, gin_pts, gout_pts, xi_pts, etemp_pts);
@@ -154,16 +159,17 @@ void tst_lagrange_asciiread(rtt_dsxx::ScalarUnitTest& ut)
   PASSMSG("Successfully created ComptonFile object.");
 
   // Next, read in the data
-  std::vector<std::vector<std::vector<std::vector<double>>>>tst_data = 
-    spCompton->read_lagrange_csk_data();
+  SP<ComptonData>spData = spCompton->read_lagrange_csk_data();
 
-  std::vector<double> gin_pts = spCompton->get_gin_pts();
-  std::vector<double> gin_breakpts = spCompton->get_gin_breakpts();
-  std::vector<double> gout_pts = spCompton->get_gout_pts();
-  std::vector<double> gout_breakpts = spCompton->get_gout_breakpts();
-  std::vector<double> xi_pts = spCompton->get_xi_pts();
-  std::vector<double> etemp_pts = spCompton->get_etemp_pts();
-  std::vector<double> etemp_breakpts = spCompton->get_etemp_breakpts();
+  std::vector<std::vector<std::vector<std::vector<double>>>>tst_data = 
+                                                        spData->get_csk_data();
+  std::vector<double> gin_pts = spData->get_gin_pts();
+  std::vector<double> gin_breakpts = spData->get_gin_breakpts();
+  std::vector<double> gout_pts = spData->get_gout_pts();
+  std::vector<double> gout_breakpts = spData->get_gout_breakpts();
+  std::vector<double> xi_pts = spData->get_xi_pts();
+  std::vector<double> etemp_pts = spData->get_etemp_pts();
+  std::vector<double> etemp_breakpts = spData->get_etemp_breakpts();
 
   check_lag_points(ut, gin_breakpts, gin_pts, gout_breakpts, gout_pts,
                   xi_pts, etemp_breakpts, etemp_pts);
@@ -199,16 +205,18 @@ void tst_lagrange_binread(rtt_dsxx::ScalarUnitTest& ut)
   PASSMSG("Successfully created ComptonFile object.");
 
   // Next, read in the data
-  std::vector<std::vector<std::vector<std::vector<double>>>>tst_data = 
-    spCompton->read_lagrange_csk_data();
+  SP<ComptonData>spData = spCompton->read_lagrange_csk_data();
 
-  std::vector<double> gin_pts = spCompton->get_gin_pts();
-  std::vector<double> gin_breakpts = spCompton->get_gin_breakpts();
-  std::vector<double> gout_pts = spCompton->get_gout_pts();
-  std::vector<double> gout_breakpts = spCompton->get_gout_breakpts();
-  std::vector<double> xi_pts = spCompton->get_xi_pts();
-  std::vector<double> etemp_pts = spCompton->get_etemp_pts();
-  std::vector<double> etemp_breakpts = spCompton->get_etemp_breakpts();
+  std::vector<std::vector<std::vector<std::vector<double>>>>tst_data = 
+                                                        spData->get_csk_data();
+
+  std::vector<double> gin_pts = spData->get_gin_pts();
+  std::vector<double> gin_breakpts = spData->get_gin_breakpts();
+  std::vector<double> gout_pts = spData->get_gout_pts();
+  std::vector<double> gout_breakpts = spData->get_gout_breakpts();
+  std::vector<double> xi_pts = spData->get_xi_pts();
+  std::vector<double> etemp_pts = spData->get_etemp_pts();
+  std::vector<double> etemp_breakpts = spData->get_etemp_breakpts();
 
   check_lag_points(ut, gin_breakpts, gin_pts, gout_breakpts, gout_pts,
                  xi_pts, etemp_breakpts, etemp_pts);
