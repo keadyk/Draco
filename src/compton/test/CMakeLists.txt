@@ -14,6 +14,8 @@ project( compton_test CXX )
 
 set( test_sources
   tstComptonFile.cc
+  tstComptonInterp.cc
+  tstComptonData.cc
   )
 file( GLOB compton_data *.compton )
 
