@@ -7,6 +7,7 @@
  * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
  */
 #include "ComptonFile.hh"
+#include "ComptonData.hh"
 #include "ds++/Assert.hh"
 #include "ds++/Endian.hh"
 
@@ -25,34 +26,32 @@ ComptonFile::~ComptonFile()
 {}
 
 // Interface to csk data read:
-std::vector<std::vector<std::vector<std::vector<double>>>> 
-ComptonFile::read_csk_data()
+rtt_dsxx::SP<ComptonData> ComptonFile::read_csk_data()
 {
     // return value
-    std::vector<std::vector<std::vector<std::vector<double>>>> data;
-    if(binary) { data = read_binary_csk_data(); }
-    else { data = read_ascii_csk_data(); }
+    SP_CompData Cdata;
+    if(binary) { Cdata = read_binary_csk_data(); }
+    else { Cdata = read_ascii_csk_data(); }
 
-    return data;
+    return Cdata;
 }
 
 // Interface to lagrange csk data read:
-std::vector<std::vector<std::vector<std::vector<double>>>> 
-ComptonFile::read_lagrange_csk_data()
+//std::vector<std::vector<std::vector<std::vector<double>>>> 
+rtt_dsxx::SP<ComptonData> ComptonFile::read_lagrange_csk_data()
 {
     // return value
-    std::vector<std::vector<std::vector<std::vector<double>>>> data;
-    if(binary) { data = read_lagrange_binary_csk_data(); }
-    else { data = read_lagrange_ascii_csk_data(); }
+    SP_CompData Cdata;
+    if(binary) { Cdata = read_lagrange_binary_csk_data(); }
+    else { Cdata = read_lagrange_ascii_csk_data(); }
 
-    return data;
+    return Cdata;
 }
 
 
 // TODO: IF we go with the angular moment-based method, we should take out the 
 // xi-eval-pt read (line 2 of the file)
-std::vector<std::vector<std::vector<std::vector<double>>>> 
-ComptonFile::read_binary_csk_data()
+rtt_dsxx::SP<ComptonData> ComptonFile::read_binary_csk_data()
 {
     // *************************************************************************
     // ************************ OPEN THE DATA FILE *****************************
@@ -103,23 +102,18 @@ ComptonFile::read_binary_csk_data()
 
     // cast raw character data to size_t
     std::memcpy(&n_xi, &size_data[3*sizeof(size_t)], sizeof(size_t));
-
-    // assign sizes to the evaluation point vectors:
-    etemp_pts.assign(n_etemp, 0.0);
-    gin_pts.assign(n_gin, 0.0);
-    gout_pts.assign(n_gout, 0.0);
-    xi_pts.assign(n_xi, 0.0); 
     
     // initialize data container for the "raw" csk values:
-    std::vector<std::vector<std::vector<std::vector<double>>>> raw_csk_data(
-    n_etemp, std::vector<std::vector<std::vector<double>>>(
-    n_gin, std::vector<std::vector<double>>(
-    n_gout, std::vector<double>(n_xi, 0.0))));
+    SP_CompData Cdata;
+    Cdata.reset(new ComptonData(n_etemp, n_gin, n_gout, n_xi));
 
     // *************************************************************************
     // ************************ GET THE XI POINTS ******************************
     // *************************************************************************
     // get the next n_xi * sizeof(double) bytes from the file
+    {
+    // allocate temporary vectors for xi data:
+    std::vector<double>xi_pts(n_xi, 0.0);
     std::vector<char>xi_data(n_xi*sizeof(double));
     csk_data.read(&xi_data[0], n_xi*sizeof(double)); 
     // check for failure:
@@ -134,10 +128,23 @@ ComptonFile::read_binary_csk_data()
         std::memcpy(&xi, &xi_data[m*sizeof(double)], sizeof(double));    
         xi_pts[m] = xi;
     }
+    Cdata->set_xi_pts(xi_pts);
+    }
 
     // *************************************************************************
     // ************************** READ THE DATA ********************************
     // *************************************************************************
+    {
+    //make temporary vectors for the evaluation points:
+    std::vector<double>gin_pts(n_gin, 0.0);
+    std::vector<double>gout_pts(n_gout, 0.0);
+    std::vector<double>etemp_pts(n_etemp, 0.0);
+
+    std::vector<std::vector<std::vector<std::vector<double>>>> raw_csk_data(
+    n_etemp, std::vector<std::vector<std::vector<double>>>(
+    n_gin, std::vector<std::vector<double>>(
+    n_gout, std::vector<double>(n_xi, 0.0))));
+
     for(size_t a = 0; a < n_etemp; a++) // for each electron temp expected
     {
         // get the electron temp for this block:
@@ -188,13 +195,18 @@ ComptonFile::read_binary_csk_data()
         } // end gamma in loop
     } // end electron temperature loop
 
+    Cdata->set_etemp_pts(etemp_pts);
+    Cdata->set_gin_pts(gin_pts);
+    Cdata->set_gout_pts(gout_pts);
+    Cdata->set_csk_data(raw_csk_data);
+    }
     // *************************************************************************
     // ************************** CLOSE THE FILE *******************************
     // *************************************************************************
     csk_data.close();
 
     std::cout << "CSK data read successfully!" << std::endl;
-    return raw_csk_data;
+    return Cdata;
 }
 
 // read formatted csk data from a single ascii CSK library file
@@ -224,8 +236,7 @@ ComptonFile::read_binary_csk_data()
 // -------------------------------(End of file)---------------------------------
 // TODO: IF we go with the angular moment-based method, we should take out the 
 // xi-eval-pt read (line 2 of the file)
-std::vector<std::vector<std::vector<std::vector<double>>>> 
-ComptonFile::read_ascii_csk_data()
+rtt_dsxx::SP<ComptonData> ComptonFile::read_ascii_csk_data()
 {
     // *************************************************************************
     // ************************* OPEN THE DATA FILE ****************************
@@ -293,21 +304,16 @@ ComptonFile::read_ascii_csk_data()
         Insist(0, "Failed to read number of xi points!");
     }
 
-    // assign sizes to the evaluation point vectors:
-    etemp_pts.assign(n_etemp, 0.0);
-    gin_pts.assign(n_gin, 0.0);
-    gout_pts.assign(n_gout, 0.0);
-    xi_pts.assign(n_xi, 0.0); 
-    
     // initialize data container for the "raw" csk values:
-    std::vector<std::vector<std::vector<std::vector<double>>>> raw_csk_data(
-    n_etemp, std::vector<std::vector<std::vector<double>>>(
-    n_gin, std::vector<std::vector<double>>(
-    n_gout, std::vector<double>(n_xi, 0.0))));
+    SP_CompData Cdata;
+    Cdata.reset(new ComptonData(n_etemp, n_gin, n_gout, n_xi));
 
     // *************************************************************************
     // ************************ GET THE XI POINTS ******************************
     // *************************************************************************
+    {
+    // make a temporary vector to hold the xi points
+    std::vector<double>xi_pts(n_xi, 0.0);
     // (recycle the string from the previous line)
     getline(csk_data, sizeline);    
     std::stringstream xi_data(sizeline);
@@ -324,13 +330,25 @@ ComptonFile::read_ascii_csk_data()
             Insist(0, "CSK data read failed!");
         }
     }
-    
+    Cdata->set_xi_pts(xi_pts);
+    }
     // *************************************************************************
     // ************************** READ THE DATA ********************************
     // *************************************************************************
     // declare a string representing a single line from the file:
     std::string file_line;
 
+    {
+    //make temporary vectors for the evaluation points:
+    std::vector<double>gin_pts(n_gin, 0.0);
+    std::vector<double>gout_pts(n_gout, 0.0);
+    std::vector<double>etemp_pts(n_etemp, 0.0);
+
+    std::vector<std::vector<std::vector<std::vector<double>>>> raw_csk_data(
+    n_etemp, std::vector<std::vector<std::vector<double>>>(
+    n_gin, std::vector<std::vector<double>>(
+    n_gout, std::vector<double>(n_xi, 0.0))));
+    
     for(size_t a = 0; a < n_etemp; a++) // for each electron temp expected
     {
         double etemp;
@@ -399,6 +417,11 @@ ComptonFile::read_ascii_csk_data()
         } // end gamma in loop
     } // end electron temperature loop
 
+    Cdata->set_etemp_pts(etemp_pts);
+    Cdata->set_gin_pts(gin_pts);
+    Cdata->set_gout_pts(gout_pts);
+    Cdata->set_csk_data(raw_csk_data);
+    }
     // *************************************************************************
     // ************************** CLOSE THE FILE *******************************
     // *************************************************************************
@@ -406,14 +429,13 @@ ComptonFile::read_ascii_csk_data()
 
     std::cout << "CSK data read successfully!" << std::endl;
     
-    return raw_csk_data;
+    return Cdata;
 }
 
 // TODO: IF we go with the angular moment-based method, we should take out the 
 // xi-eval-pt read (line 2 of the file). Also, this routine assumes the etemp,
 // gin, and gout variables will all be treated using lagrange interpolation
-std::vector<std::vector<std::vector<std::vector<double>>>> 
-ComptonFile::read_lagrange_ascii_csk_data()
+rtt_dsxx::SP<ComptonData> ComptonFile::read_lagrange_ascii_csk_data()
 {
     // *************************************************************************
     // ************************* OPEN THE DATA FILE ****************************
@@ -485,25 +507,16 @@ ComptonFile::read_lagrange_ascii_csk_data()
         Insist(0, "Failed to read number of xi points!");
     }
 
-    // assign sizes to the evaluation point vectors:
-    etemp_breakpts.assign(n_etempbp, 0.0);
-    etemp_pts.assign(n_etemp, 0.0);
-    gin_breakpts.assign(n_ginbp, 0.0);
-    gin_pts.assign(n_gin, 0.0);
-    gout_breakpts.assign(n_goutbp, 0.0);
-    gout_pts.assign(n_gout, 0.0);
-    xi_pts.assign(n_xi, 0.0); 
-
     // initialize data container for the "raw" csk values:
-    std::vector<std::vector<std::vector<std::vector<double>>>> raw_csk_data(
-    n_etemp, std::vector<std::vector<std::vector<double>>>(
-    3*n_gin, std::vector<std::vector<double>>(
-    n_gout, std::vector<double>(n_xi, 0.0))));
+    SP_CompData Cdata;
+    Cdata.reset(new ComptonData(n_etemp, n_gin, n_gout, n_xi));
 
     // *************************************************************************
     // *********************** GET THE BREAKPOINTS *****************************
     // *************************************************************************
+    {
     // (recycle the string from the previous line)
+    std::vector<double>etemp_breakpts(n_etempbp, 0.0);
     getline(csk_data, sizeline);    
     std::stringstream etemp_data(sizeline);
     for(size_t m = 0; m < n_etempbp; m++)
@@ -519,6 +532,10 @@ ComptonFile::read_lagrange_ascii_csk_data()
             Insist(0, "CSK data read failed!");
         }
     }
+    Cdata->set_etemp_breakpts(etemp_breakpts);
+    }
+    {
+    std::vector<double>gin_breakpts(n_ginbp, 0.0);
     getline(csk_data, sizeline);    
     std::stringstream gin_data(sizeline);
     for(size_t m = 0; m < n_ginbp; m++)
@@ -534,6 +551,10 @@ ComptonFile::read_lagrange_ascii_csk_data()
             Insist(0, "CSK data read failed!");
         }
     }
+    Cdata->set_gin_breakpts(gin_breakpts);
+    }
+    {
+    std::vector<double>gout_breakpts(n_goutbp, 0.0);
     getline(csk_data, sizeline);    
     std::stringstream gout_data(sizeline);
     for(size_t m = 0; m < n_goutbp; m++)
@@ -549,10 +570,14 @@ ComptonFile::read_lagrange_ascii_csk_data()
             Insist(0, "CSK data read failed!");
         }
     }
+    Cdata->set_gout_breakpts(gout_breakpts);
+    }
 
     // *************************************************************************
     // ************************ GET THE XI POINTS ******************************
     // *************************************************************************
+    {
+    std::vector<double>xi_pts(n_xi, 0.0);
     // (recycle the string from the previous line)
     getline(csk_data, sizeline);    
     std::stringstream xi_data(sizeline);
@@ -569,12 +594,23 @@ ComptonFile::read_lagrange_ascii_csk_data()
             Insist(0, "CSK data read failed!");
         }
     }
-    
+    Cdata->set_xi_pts(xi_pts);
+    }
     // *************************************************************************
     // ************************** READ THE DATA ********************************
     // *************************************************************************
     // declare a string representing a single line from the file:
     std::string file_line;
+
+    {
+    std::vector<double>etemp_pts(n_etemp, 0.0);
+    std::vector<double>gin_pts(n_gin, 0.0);
+    std::vector<double>gout_pts(n_gout, 0.0);
+
+    std::vector<std::vector<std::vector<std::vector<double>>>> raw_csk_data(
+    n_etemp, std::vector<std::vector<std::vector<double>>>(
+    3*n_gin, std::vector<std::vector<double>>(
+    n_gout, std::vector<double>(n_xi, 0.0))));
 
     for(size_t a = 0; a < n_etemp; a++) // for each electron temp expected
     {
@@ -651,18 +687,22 @@ ComptonFile::read_lagrange_ascii_csk_data()
         } // end loop over separate interpolation regions
     } // end electron temperature loop
 
+    Cdata->set_etemp_pts(etemp_pts);
+    Cdata->set_gin_pts(gin_pts);
+    Cdata->set_gout_pts(gout_pts);
+    Cdata->set_csk_data(raw_csk_data);
+    }
     // *************************************************************************
     // ************************** CLOSE THE FILE *******************************
     // *************************************************************************
     csk_data.close();
 
     std::cout << "CSK data read successfully!" << std::endl;
-    
-    return raw_csk_data;
+
+    return Cdata;
 }
 
-std::vector<std::vector<std::vector<std::vector<double>>>> 
-ComptonFile::read_lagrange_binary_csk_data()
+rtt_dsxx::SP<ComptonData> ComptonFile::read_lagrange_binary_csk_data()
 {
     // *************************************************************************
     // ************************ OPEN THE DATA FILE *****************************
@@ -716,26 +756,17 @@ ComptonFile::read_lagrange_binary_csk_data()
 
     // cast raw character data to size_t
     std::memcpy(&n_xi, &size_data[6*sizeof(size_t)], sizeof(size_t));
-
-    // assign sizes to the evaluation point vectors:
-    etemp_breakpts.assign(n_etempbp, 0.0);
-    etemp_pts.assign(n_etemp, 0.0);
-    gin_breakpts.assign(n_ginbp, 0.0);
-    gin_pts.assign(n_gin, 0.0);
-    gout_breakpts.assign(n_goutbp, 0.0);
-    gout_pts.assign(n_gout, 0.0);
-    xi_pts.assign(n_xi, 0.0); 
    
     // initialize data container for the "raw" csk values:
-    std::vector<std::vector<std::vector<std::vector<double>>>> raw_csk_data(
-    n_etemp, std::vector<std::vector<std::vector<double>>>(
-    3*n_gin, std::vector<std::vector<double>>(
-    n_gout, std::vector<double>(n_xi, 0.0))));
+    SP_CompData Cdata;
+    Cdata.reset(new ComptonData(n_etemp, n_gin, n_gout, n_xi));
 
     // *************************************************************************
     // *********************** GET THE BREAKPOINTS *****************************
     // *************************************************************************
+    {
     // get the next n_xi * sizeof(double) bytes from the file
+    std::vector<double>etemp_breakpts(n_etempbp, 0.0);
     std::vector<char>etemp_data(n_etempbp*sizeof(double));
     csk_data.read(&etemp_data[0], n_etempbp*sizeof(double)); 
     // check for failure:
@@ -750,8 +781,11 @@ ComptonFile::read_lagrange_binary_csk_data()
         std::memcpy(&etempbp, &etemp_data[m*sizeof(double)], sizeof(double));    
         etemp_breakpts[m] = etempbp;
     }
-
+    Cdata->set_etemp_breakpts(etemp_breakpts);
+    }
+    {
     // get the next n_xi * sizeof(double) bytes from the file
+    std::vector<double>gin_breakpts(n_ginbp, 0.0);
     std::vector<char>gin_data(n_ginbp*sizeof(double));
     csk_data.read(&gin_data[0], n_ginbp*sizeof(double)); 
     // check for failure:
@@ -766,8 +800,11 @@ ComptonFile::read_lagrange_binary_csk_data()
         std::memcpy(&ginbp, &gin_data[m*sizeof(double)], sizeof(double));    
         gin_breakpts[m] = ginbp;
     }
-
+    Cdata->set_gin_breakpts(gin_breakpts);
+    }
+    {
     // get the next n_xi * sizeof(double) bytes from the file
+    std::vector<double>gout_breakpts(n_goutbp, 0.0);
     std::vector<char>gout_data(n_goutbp*sizeof(double));
     csk_data.read(&gout_data[0], n_goutbp*sizeof(double)); 
     // check for failure:
@@ -782,11 +819,14 @@ ComptonFile::read_lagrange_binary_csk_data()
         std::memcpy(&goutbp, &gout_data[m*sizeof(double)], sizeof(double));    
         gout_breakpts[m] = goutbp;
     }
-
+    Cdata->set_gout_breakpts(gout_breakpts);
+    }
     // *************************************************************************
     // ************************ GET THE XI POINTS ******************************
     // *************************************************************************
+    {
     // get the next n_xi * sizeof(double) bytes from the file
+    std::vector<double>xi_pts(n_xi, 0.0);
     std::vector<char>xi_data(n_xi*sizeof(double));
     csk_data.read(&xi_data[0], n_xi*sizeof(double)); 
     // check for failure:
@@ -801,10 +841,21 @@ ComptonFile::read_lagrange_binary_csk_data()
         std::memcpy(&xi, &xi_data[m*sizeof(double)], sizeof(double));    
         xi_pts[m] = xi;
     }
-
+    Cdata->set_xi_pts(xi_pts);
+    }
     // *************************************************************************
     // ************************** READ THE DATA ********************************
     // *************************************************************************
+    {
+    std::vector<double>etemp_pts(n_etemp, 0.0);
+    std::vector<double>gin_pts(n_gin, 0.0);
+    std::vector<double>gout_pts(n_gout, 0.0);
+
+    std::vector<std::vector<std::vector<std::vector<double>>>> raw_csk_data(
+    n_etemp, std::vector<std::vector<std::vector<double>>>(
+    3*n_gin, std::vector<std::vector<double>>(
+    n_gout, std::vector<double>(n_xi, 0.0))));
+
     for(size_t a = 0; a < n_etemp; a++) // for each electron temp expected
     {
         // get the electron temp for this block:
@@ -859,13 +910,19 @@ ComptonFile::read_lagrange_binary_csk_data()
       }
     } // end electron temperature loop
 
+    Cdata->set_etemp_pts(etemp_pts);
+    Cdata->set_gin_pts(gin_pts);
+    Cdata->set_gout_pts(gout_pts);
+    Cdata->set_csk_data(raw_csk_data);
+    }
+
     // *************************************************************************
     // ************************** CLOSE THE FILE *******************************
     // *************************************************************************
     csk_data.close();
 
     std::cout << "CSK data read successfully!" << std::endl;
-    return raw_csk_data;
+    return Cdata;
 }
 
 }

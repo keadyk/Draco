@@ -11,13 +11,19 @@
 #ifndef __compton_ComptonFile_hh__
 #define __compton_ComptonFile_hh__
 
+#include "ds++/SP.hh"
 #include <string>
 #include <vector>
 #include <fstream>
 
 namespace rtt_compton {
 
+// forward declare the compton data class:
+class ComptonData;
+
 class ComptonFile {
+  // useful typedef:
+  typedef rtt_dsxx::SP<ComptonData> SP_CompData;
 
   public:
   //! Constructor with default binary library type
@@ -26,28 +32,11 @@ class ComptonFile {
   ~ComptonFile();
 
   //! Public interface to compton library reader
-  std::vector<std::vector<std::vector<std::vector<double>>>> 
-  read_csk_data();
+  SP_CompData read_csk_data();
 
   //! Public interface to compton library reader
-  std::vector<std::vector<std::vector<std::vector<double>>>> 
-  read_lagrange_csk_data();
+  SP_CompData read_lagrange_csk_data();
 
-  //! Accessor for angular evaluation points
-  std::vector<double> get_xi_pts() { return xi_pts; };
-  //! Accessor for outgoing frequency evaluation points
-  std::vector<double> get_gout_pts() { return gout_pts; };
-  //! Accessor for incoming frequency evaluation points
-  std::vector<double> get_gin_pts() { return gin_pts; };
-  //! Accessor for electron temperature evaluation points
-  std::vector<double> get_etemp_pts() { return etemp_pts; };
-
-  //! Accessor for outgoing freqency breakpoints (Lagrange library)
-  std::vector<double> get_gout_breakpts() { return gout_breakpts; };
-  //! Accessor for outgoing freqency breakpoints (Lagrange library)
-  std::vector<double> get_gin_breakpts() { return gin_breakpts; };
-  //! Accessor for outgoing freqency breakpoints (Lagrange library)
-  std::vector<double> get_etemp_breakpts() { return etemp_breakpts; };
 
   private:
   // name of the file to be read
@@ -59,26 +48,17 @@ class ComptonFile {
   // flag for binary file (defaults to true in constructor)
   bool binary;
 
-  // evaluation points for the CSK (read from data library):
-  std::vector<double> gin_pts, gout_pts, xi_pts, etemp_pts;
-  // additional data for the Lagrange CSK library:
-  std::vector<double> gin_breakpts, gout_breakpts, etemp_breakpts;
-
   // read the csk library in binary format
-  std::vector<std::vector<std::vector<std::vector<double>>>> 
-  read_binary_csk_data();
+  SP_CompData read_binary_csk_data();
 
   // read the csk library in ascii format
-  std::vector<std::vector<std::vector<std::vector<double>>>> 
-  read_ascii_csk_data();
+  SP_CompData read_ascii_csk_data();
 
   // read the lagrange csk library in ascii format
-  std::vector<std::vector<std::vector<std::vector<double>>>> 
-  read_lagrange_ascii_csk_data();
+  SP_CompData read_lagrange_ascii_csk_data();
 
   // read the lagrange csk library in binary format
-  std::vector<std::vector<std::vector<std::vector<double>>>> 
-  read_lagrange_binary_csk_data();
+  SP_CompData read_lagrange_binary_csk_data();
 
 };
 
