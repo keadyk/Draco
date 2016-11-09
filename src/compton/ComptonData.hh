@@ -1,9 +1,10 @@
 //----------------------------------*-C++-*----------------------------------//
 /*!
- * \file   compton/ComptonInterp.hh
+ * \file   compton/ComptonData.hh
  * \author Kendra Keady
  * \date   Tues Nov 8 2016 (Election Day!)
- * \brief  Header file for ComptonData class
+ * \brief  Header/Implementation file for ComptonData class (holds data for 
+ *         Compton scattering interpolation)
  * \note   Copyright (C) 2016 Los Alamos National Security, LLC.
  *         All rights reserved.
  */
