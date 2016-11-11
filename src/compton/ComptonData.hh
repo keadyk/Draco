@@ -140,6 +140,33 @@ class ComptonData {
     //------------------------------------------------------------------------//
     //------------------------------------------------------------------------//
     //------------------------------------------------------------------------//
+    // set all evaluation points at once:
+    void set_evalpts(const std::vector<double>& etempdata, 
+                      const std::vector<double>& gindata, 
+                      const std::vector<double>& goutdata, 
+                      const std::vector<double>& xidata)
+    {
+      etemp_pts = etempdata;
+      gin_pts = gindata;
+      gout_pts = goutdata;
+      xi_pts = xidata;
+    }
+
+    // set all break points at once:
+    void set_breakpts(const std::vector<double>& etempdata, 
+                      const std::vector<double>& gindata, 
+                      const std::vector<double>& goutdata)
+    {
+      etemp_breakpts = etempdata;
+      gin_breakpts = gindata;
+      gout_breakpts = goutdata;
+    }
+
+
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
     // retrieve bools:  
     bool is_lagrange() { return lagrange; }
     bool is_legendre() { return legendre; }
