@@ -8,6 +8,7 @@
  *         All rights reserved.
  */
 
+#include "ComptonData.hh"
 #include "ComptonInterp.hh"
 #include "ds++/Assert.hh"
 #include "ds++/Release.hh"
@@ -24,6 +25,11 @@ using rtt_dsxx::soft_equiv;
 
 void tst_interp(rtt_dsxx::ScalarUnitTest& ut)
 {
+  // make a phony comptondata object and fill in part of its data
+  rtt_dsxx::SP<rtt_compton::ComptonData> Cdata;
+  // try to make a compton interpolation object
+  
+
   ITFAILS;
 }
 

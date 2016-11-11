@@ -50,8 +50,9 @@ class ComptonInterp {
     //! scaled and shifted x, y, and etemp values:
     std::vector<double> xs, ys, etemps;
 
-    //! Sizes of interpolation data:
+    //! Number of breakpoints per variable:
     size_t nx_break, ny_break, netemp_break;
+    //! Number of local interpolation points per breakpoint region:
     size_t nx_local, ny_local, netemp_local;
 
     size_t binary_search(const double, const std::vector<double>&);
@@ -68,7 +69,7 @@ class ComptonInterp {
     ComptonInterp(rtt_dsxx::SP<const ComptonData>);
 
     // Destructor
-    ~ComptonInterp();
+    ~ComptonInterp() {};
 
     //! Interpolate ALL gin/gout/xi data in electron temperature 
     std::vector<std::vector<std::vector<double>>> interpolate_etemp(const double);

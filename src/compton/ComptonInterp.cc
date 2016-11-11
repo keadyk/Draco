@@ -9,6 +9,7 @@
  */
 
 #include "ComptonInterp.hh"
+#include <sstream>
 
 namespace rtt_compton {
 
@@ -112,7 +113,7 @@ Region ComptonInterp::find_global_region(const double gin, const double gout)
 size_t ComptonInterp::find_etemp_region(const double etemp)
 {
   std::vector<double> breakpt_data = Cdata->get_etemp_breakpts();
-
+  std::cout << "etemp break points " << breakpt_data[0] << " " << breakpt_data[1] << std::endl;
   size_t iregion = binary_search(etemp, breakpt_data);
 
   return iregion;
@@ -152,7 +153,9 @@ std::pair<size_t, size_t> ComptonInterp::find_xy_region(const double gin,
       y = gout - gin;
       break;
     default:
-      std::cout << "Unable to find interpolation region" << std::endl;
+      std::ostringstream message;
+      message << "ComptonInterp: gin/gout pair outside interpolation range";
+      throw std::out_of_range(message.str());
       break;
   }
   // use y value to determine breakpoint index:
@@ -165,6 +168,20 @@ std::pair<size_t, size_t> ComptonInterp::find_xy_region(const double gin,
 size_t ComptonInterp::binary_search(const double value, 
                                     const std::vector<double>& bp_data)
 {
+  // check that the value is actually between the bounds:
+  if(value < bp_data[0] || value > bp_data.back())
+  { 
+    std::ostringstream message;
+    message << "ComptonInterp: value outside binary search bounds";
+    throw std::out_of_range(message.str());
+  }
+  
+  // if there are only two options, the value had better be in region 0...
+  if(bp_data.size() == 2)
+  {
+    return 0;
+  }
+
   // get low and high indices for the breakpoint vector
   size_t low = 0;
   size_t high = bp_data.size()-1;
@@ -190,11 +207,23 @@ std::vector<std::vector<std::vector<double>>>ComptonInterp::
   // figure out what interpolation region we're in
   size_t i = find_etemp_region(etemp); 
 
+  std::cout << "etemp region: " << i << std::endl;
+
   // grab the data for this electron temperature region:
   std::vector<std::vector<std::vector<std::vector<double>>>>csk_data =
       Cdata->get_csk_data(i);
+
+  std::cout << "data extent: " << csk_data.size() << " " << csk_data[0].size() << " " << csk_data[0][0].size() << " " << csk_data[0][0][0].size() << std::endl;
+
   // get the electron temperature eval points, too:
   std::vector<double> etemp_pts = Cdata->get_etemp_data(i);
+  std::cout << "etemp pts: ";
+
+  for(size_t c=0; c<etemp_pts.size(); c++)
+  {
+    std::cout << etemp_pts[c] << " ";
+  }
+  std::cout << std::endl;
   
   // make a vector for the return value:
   std::vector<std::vector<std::vector<double>>>interp_data(
@@ -211,12 +240,16 @@ std::vector<std::vector<std::vector<double>>>ComptonInterp::
       {
         //stride through and get the correct "stripe" of data
         std::vector<double>interp_pts(csk_data.size(), 0.0);
+        std::cout << "interpolation csk points: ";
         for(size_t d=0; d < csk_data.size(); d++)
         {
           interp_pts[d] = csk_data[d][a][b][c];
+          std::cout << interp_pts[d] <<  " ";
         }
+        std::cout << std::endl;
         //interpolate!
         interp_data[a][b][c] = interpolate_etemp(interp_pts, etemp_pts, etemp);
+        std::cout << "interpolated value for " << etemp << " = " << interp_data[a][b][c] << std::endl;
       }
     }
   }
