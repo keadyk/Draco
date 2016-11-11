@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <cstdlib>
+#include <iostream>
 
 namespace rtt_compton {
 
@@ -57,7 +58,20 @@ class ComptonData {
     //! Destructor
     ~ComptonData() {}
 
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
     //! Accessors for various data arrays
+    size_t get_n_etemp_breakpts() { return etemp_breakpts.size(); }
+    size_t get_n_gin_breakpts() { return gin_breakpts.size(); }
+    size_t get_n_gout_breakpts() { return gout_breakpts.size(); }
+
+    size_t get_n_etemp_pts() { return etemp_pts.size(); }
+    size_t get_n_gin_pts() { return gin_pts.size(); }
+    size_t get_n_gout_pts() { return gout_pts.size(); }
+    size_t get_n_xi_pts() { return xi_pts.size(); }
+
     std::vector<double> get_etemp_breakpts() { return etemp_breakpts; }
     std::vector<double> get_gin_breakpts() { return gin_breakpts; }
     std::vector<double> get_gout_breakpts() { return gout_breakpts; }
@@ -67,9 +81,41 @@ class ComptonData {
     std::vector<double> get_gout_pts() { return gout_pts; }
     std::vector<double> get_xi_pts() { return xi_pts; }
 
+    // get ALL CSK data in one fell swoop
     std::vector<std::vector<std::vector<std::vector<double>>>> get_csk_data()
                                                             { return csk_data; }
 
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //! Const accessors 
+    size_t get_n_etemp_breakpts() const { return etemp_breakpts.size(); }
+    size_t get_n_gin_breakpts() const { return gin_breakpts.size(); }
+    size_t get_n_gout_breakpts() const { return gout_breakpts.size(); }
+
+    size_t get_n_etemp_pts() const { return etemp_pts.size(); }
+    size_t get_n_gin_pts() const { return gin_pts.size(); }
+    size_t get_n_gout_pts() const { return gout_pts.size(); }
+    size_t get_n_xi_pts() const { return xi_pts.size(); }
+
+    std::vector<double> get_etemp_breakpts() const { return etemp_breakpts; }
+    std::vector<double> get_gin_breakpts() const { return gin_breakpts; }
+    std::vector<double> get_gout_breakpts() const { return gout_breakpts; }
+
+    std::vector<double> get_etemp_pts() const { return etemp_pts; }
+    std::vector<double> get_gin_pts() const { return gin_pts; }
+    std::vector<double> get_gout_pts() const { return gout_pts; }
+    std::vector<double> get_xi_pts() const { return xi_pts; }
+
+    std::vector<std::vector<std::vector<std::vector<double>>>> get_csk_data() 
+                                                      const { return csk_data; }
+    
+
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
     //! Set various data arrays
     void set_etemp_breakpts(const std::vector<double>& data)
       { etemp_breakpts = data; }
@@ -90,10 +136,161 @@ class ComptonData {
         const std::vector<std::vector<std::vector<std::vector<double>>>>& data)
       { csk_data = data; }
 
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    // retrieve bools:  
+    bool is_lagrange() { return lagrange; }
+    bool is_legendre() { return legendre; }
 
 
-};
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    //------------------------------------------------------------------------//
+    std::vector<double> get_etemp_data(const size_t region) const
+    {
+      size_t ppr_etemp = etemp_pts.size()/(etemp_breakpts.size()-1);
+      std::vector<double>etemp_data(ppr_etemp, 0.0);
+      size_t index1 = region * ppr_etemp;
+      for(size_t a=0; a<ppr_etemp; a++)
+      { etemp_data[a] = etemp_pts[index1 + a]; }
+      return etemp_data;  
+    }
 
-}
+    std::vector<double> get_etemp_data(const size_t region)
+    {
+      size_t ppr_etemp = etemp_pts.size()/(etemp_breakpts.size()-1);
+      std::vector<double>etemp_data(ppr_etemp, 0.0);
+      size_t index1 = region * ppr_etemp;
+      for(size_t a=0; a<ppr_etemp; a++)
+      { etemp_data[a] = etemp_pts[index1 + a]; }
+      return etemp_data;  
+    }
+
+    // get all data for a particlar etemp, interpolation region, and x/y region
+    std::vector<std::vector<std::vector<std::vector<double>>>>get_csk_data(
+                                                               size_t etemp_reg,
+                                                               size_t interp_reg,
+                                                               size_t x_reg,
+                                                               size_t y_reg) const
+    {
+      // use the provided regions to determine the proper indices:
+      size_t ppr_etemp = etemp_pts.size()/(etemp_breakpts.size()-1);
+      size_t ppr_gin = gin_pts.size()/(gin_breakpts.size()-1);
+      size_t ppr_gout = gout_pts.size()/(gout_breakpts.size()-1);
+
+      // use the interp region (1,2, or 3) to calculate the offset into the gin 
+      // index:
+      size_t offset = interp_reg*gin_pts.size();
+
+      // allocate a return vector
+      std::vector<std::vector<std::vector<std::vector<double>>>> select_data
+      (ppr_etemp, std::vector<std::vector<std::vector<double>>>(ppr_gin, 
+       std::vector<std::vector<double>>(ppr_gout, 
+       std::vector<double>(xi_pts.size(), 0.0) ) ) );
+      
+      // fill it with data:
+      for(size_t a=0; a<ppr_etemp; a++)
+      {
+        for(size_t b=0; b<ppr_gin; b++)
+        {
+          for(size_t c=0; c<ppr_gout; c++)
+          {
+            // fill in the whole xi row from the csk_data;
+            select_data[a][b][c] = csk_data[ppr_etemp*etemp_reg + a]
+                                           [offset + ppr_gin*x_reg + b]
+                                           [ppr_gout*y_reg + c];
+          } 
+        }
+      }
+      return select_data;
+    }
+
+    // get all data for a particlar etemp, interpolation region, and x/y region
+    std::vector<std::vector<std::vector<std::vector<double>>>>get_csk_data(
+                                                               size_t etemp_reg,
+                                                               size_t interp_reg,
+                                                               size_t x_reg,
+                                                               size_t y_reg)
+    {
+      // use the provided regions to determine the proper indices:
+      size_t ppr_etemp = etemp_pts.size()/(etemp_breakpts.size()-1);
+      size_t ppr_gin = gin_pts.size()/(gin_breakpts.size()-1);
+      size_t ppr_gout = gout_pts.size()/(gout_breakpts.size()-1);
+
+      // use the interp region (1,2, or 3) to calculate the offset into the gin 
+      // index:
+      size_t offset = interp_reg*gin_pts.size();
+
+      // allocate a return vector
+      std::vector<std::vector<std::vector<std::vector<double>>>> select_data
+      (ppr_etemp, std::vector<std::vector<std::vector<double>>>(ppr_gin, 
+       std::vector<std::vector<double>>(ppr_gout, 
+       std::vector<double>(xi_pts.size(), 0.0) ) ) );
+      
+      // fill it with data:
+      for(size_t a=0; a<ppr_etemp; a++)
+      {
+        for(size_t b=0; b<ppr_gin; b++)
+        {
+          for(size_t c=0; c<ppr_gout; c++)
+          {
+            // fill in the whole xi row from the csk_data;
+            select_data[a][b][c] = csk_data[ppr_etemp*etemp_reg + a]
+                                           [offset + ppr_gin*x_reg + b]
+                                           [ppr_gout*y_reg + c];
+          } 
+        }
+      }
+      return select_data;
+    }
+
+    // get all data for a particlar etemp
+    std::vector<std::vector<std::vector<std::vector<double>>>>get_csk_data(
+                                                                  size_t etemp_reg) const
+    {
+      // use the provided regions to determine the proper indices:
+      size_t ppr_etemp = etemp_pts.size()/(etemp_breakpts.size()-1);
+      // allocate a return vector
+      std::vector<std::vector<std::vector<std::vector<double>>>> select_data
+      (ppr_etemp, std::vector<std::vector<std::vector<double>>>(3*gin_pts.size(), 
+       std::vector<std::vector<double>>(gout_pts.size(), 
+       std::vector<double>(xi_pts.size(), 0.0) ) ) );
+      
+      // for each local etemp interpolation point in this breakpt region:
+      for(size_t a=0; a<ppr_etemp; a++)
+      {
+        // fill in all x/y/xi data from the csk_data;
+        select_data[a] = csk_data[ppr_etemp*etemp_reg + a];
+      }
+      return select_data;
+    }
+
+    // get all data for a particlar etemp
+    std::vector<std::vector<std::vector<std::vector<double>>>>get_csk_data(
+                                                                  size_t etemp_reg)
+    {
+      // use the provided regions to determine the proper indices:
+      size_t ppr_etemp = etemp_pts.size()/(etemp_breakpts.size()-1);
+      // allocate a return vector
+      std::vector<std::vector<std::vector<std::vector<double>>>> select_data
+      (ppr_etemp, std::vector<std::vector<std::vector<double>>>(3*gin_pts.size(), 
+       std::vector<std::vector<double>>(gout_pts.size(), 
+       std::vector<double>(xi_pts.size(), 0.0) ) ) );
+      
+      // for each local etemp interpolation point in this breakpt region:
+      for(size_t a=0; a<ppr_etemp; a++)
+      {
+        // fill in all x/y/xi data from the csk_data;
+        select_data[a] = csk_data[ppr_etemp*etemp_reg + a];
+      }
+      return select_data;
+    }
+
+}; // end class compton_data
+
+} // end namespace rtt_compton
 
 #endif
