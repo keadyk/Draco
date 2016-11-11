@@ -29,7 +29,7 @@
  * CSK values in temperature, incident frequency, and outgoing frequency.
  * 
  *
- * \arg interpolation data?
+ * \arg SP<ComptonData> - smart pointer to a Compton Data object
  *
  */
 
@@ -37,37 +37,47 @@ namespace rtt_compton {
 
 // Enumerated type to describe the interpolation regions
 // (used only within this class)
-enum class Region{ BOTTOM=1, MID=2, TOP=3, NONE=4 };
+enum class Region{ BOTTOM=0, MID=1, TOP=2, NONE=3 };
 
 class ComptonInterp {
   private:
     //! smart pointer to constant compton data:
     rtt_dsxx::SP<const ComptonData> Cdata;
 
-    //! function to determine what gamma/gammaout region we're in
-    //Region find_global_region(const double, const double);
+    //! Product values for Lagrange interpolation (in x, y. and etemp)
+    std::vector<double> prod_x, prod_y, prod_etemp;
+
+    //! scaled and shifted x, y, and etemp values:
+    std::vector<double> xs, ys, etemps;
+
+    //! Sizes of interpolation data:
+    size_t nx_break, ny_break, netemp_break;
+    size_t nx_local, ny_local, netemp_local;
+
+    size_t binary_search(const double, const std::vector<double>&);
+
+    Region find_global_region(const double, const double);
 
     //! function to determine what electron temp interpolation region we're in
-    //double find_local_region(const double);
+    size_t find_etemp_region(const double);
 
     //! function to determine what local x/y interpolation region we're in
-    //std::pair<double, double> find_local_region(const double, const double);
+    std::pair<size_t, size_t> find_xy_region(const double, const double);
   public:
     // Constructor 
-    // TODO: I think all of the vectors of data should be placed in a compton
-    // data class, which can then simply be passed to this class via a SP.
     ComptonInterp(rtt_dsxx::SP<const ComptonData>);
 
     // Destructor
     ~ComptonInterp();
 
-    //! Interpolate in electron temperature for a CSK point (or integral)
-    /*double interpolate_etemp(double, double, double);
+    //! Interpolate ALL gin/gout/xi data in electron temperature 
+    std::vector<std::vector<std::vector<double>>> interpolate_etemp(const double);
 
-    //! Interpolate in electron temperature for all CSK points in gin/gout
-    std::vector<double> interpolate_etemp(std::vector<double>, 
-                                          std::vector<double>,
-                                          double);*/
+    //! Use Lagrange interpolation on a single etemp point
+    double interpolate_etemp(const std::vector<double>&, 
+                                          const std::vector<double>&,
+                                          const double);
+
 };
 
 }
