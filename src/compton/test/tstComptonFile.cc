@@ -370,7 +370,7 @@ void check_std_data(rtt_dsxx::ScalarUnitTest& ut,
   } 
 }
 
-//data check for standard library:
+//data check for lagrange library:
 void check_lag_data(rtt_dsxx::ScalarUnitTest& ut,
          const std::vector<std::vector<std::vector<std::vector<double>>>>& data)
 {
