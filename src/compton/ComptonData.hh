@@ -19,19 +19,21 @@ namespace rtt_compton {
 
 class ComptonData {
   private:
-    //! Evaluation points for the compton library:
+    //! Interpolation breakpoints for compton library:
     std::vector<double> etemp_breakpts;
     std::vector<double> gin_breakpts;
     std::vector<double> gout_breakpts;
+    //! Evaluation points for the compton library:
     std::vector<double> etemp_pts;
     std::vector<double> gin_pts;
     std::vector<double> gout_pts;
     std::vector<double> xi_pts;
 
-    //! flags for lagrange interpolation, legendre moment treatment
+    //! flags for Lagrange interpolation and Legendre moment angular treatment
     bool lagrange, legendre;
 
-    // Raw CSK data read in from library file:
+    //! Raw CSK data in electron temperature, frequency in, frequency out,
+    //! and xi (or Legendre moments of xi)
     std::vector<std::vector<std::vector<std::vector<double>>>> csk_data;
 
   public:
@@ -52,7 +54,6 @@ class ComptonData {
                       std::vector<std::vector<std::vector<double>>>(dim, 
                       std::vector<std::vector<double>>(ngout, 
                       std::vector<double>(nxi, 0.0))));
-
     }
 
     //! Destructor
@@ -60,6 +61,7 @@ class ComptonData {
 
     //------------------------------------------------------------------------//
     //------------------------------------------------------------------------//
+    // ACCESSORS -------------------------------------------------------------//
     //------------------------------------------------------------------------//
     //------------------------------------------------------------------------//
     //! Accessors for various data arrays
@@ -81,15 +83,11 @@ class ComptonData {
     std::vector<double> get_gout_pts() { return gout_pts; }
     std::vector<double> get_xi_pts() { return xi_pts; }
 
-    // get ALL CSK data in one fell swoop
+    // (get ALL CSK data in one fell swoop)
     std::vector<std::vector<std::vector<std::vector<double>>>> get_csk_data()
                                                             { return csk_data; }
 
-    //------------------------------------------------------------------------//
-    //------------------------------------------------------------------------//
-    //------------------------------------------------------------------------//
-    //------------------------------------------------------------------------//
-    //! Const accessors 
+    //! Const accessors for various data arrays
     size_t get_n_etemp_breakpts() const { return etemp_breakpts.size(); }
     size_t get_n_gin_breakpts() const { return gin_breakpts.size(); }
     size_t get_n_gout_breakpts() const { return gout_breakpts.size(); }
@@ -108,38 +106,21 @@ class ComptonData {
     std::vector<double> get_gout_pts() const { return gout_pts; }
     std::vector<double> get_xi_pts() const { return xi_pts; }
 
+    // (get ALL CSK data in one fell swoop)
     std::vector<std::vector<std::vector<std::vector<double>>>> get_csk_data() 
                                                       const { return csk_data; }
     
 
     //------------------------------------------------------------------------//
     //------------------------------------------------------------------------//
+    // SETTERS ---------------------------------------------------------------//
     //------------------------------------------------------------------------//
     //------------------------------------------------------------------------//
-    //! Set various data arrays
-    void set_etemp_breakpts(const std::vector<double>& data)
-      { etemp_breakpts = data; }
-    void set_gin_breakpts(const std::vector<double>& data)
-      { gin_breakpts = data; }
-    void set_gout_breakpts(const std::vector<double>& data)
-      { gout_breakpts = data; }
-    void set_etemp_pts(const std::vector<double>& data)
-      { etemp_pts = data; }
-    void set_gin_pts(const std::vector<double>& data)
-      { gin_pts = data; }
-    void set_gout_pts(const std::vector<double>& data)
-      { gout_pts = data; }
-    void set_xi_pts(const std::vector<double>& data)
-      { xi_pts = data; }
-
+    
     void set_csk_data(
         const std::vector<std::vector<std::vector<std::vector<double>>>>& data)
       { csk_data = data; }
 
-    //------------------------------------------------------------------------//
-    //------------------------------------------------------------------------//
-    //------------------------------------------------------------------------//
-    //------------------------------------------------------------------------//
     // set all evaluation points at once:
     void set_evalpts(const std::vector<double>& etempdata, 
                       const std::vector<double>& gindata, 
@@ -165,17 +146,19 @@ class ComptonData {
 
     //------------------------------------------------------------------------//
     //------------------------------------------------------------------------//
+    // BOOL ACCESSORS --------------------------------------------------------//
     //------------------------------------------------------------------------//
     //------------------------------------------------------------------------//
-    // retrieve bools:  
+    //! retrieve bools:  
     bool is_lagrange() { return lagrange; }
     bool is_legendre() { return legendre; }
 
-
     //------------------------------------------------------------------------//
     //------------------------------------------------------------------------//
+    // DATA SUBSET ACCESSORS -------------------------------------------------//
     //------------------------------------------------------------------------//
     //------------------------------------------------------------------------//
+    // get all data for a particular etemp
     std::vector<double> get_etemp_data(const size_t region) const
     {
       size_t ppr_etemp = etemp_pts.size()/(etemp_breakpts.size()-1);
@@ -276,7 +259,7 @@ class ComptonData {
 
     // get all data for a particlar etemp
     std::vector<std::vector<std::vector<std::vector<double>>>>get_csk_data(
-                                                                  size_t etemp_reg) const
+                                                        size_t etemp_reg) const
     {
       // use the provided regions to determine the proper indices:
       size_t ppr_etemp = etemp_pts.size()/(etemp_breakpts.size()-1);
@@ -297,7 +280,7 @@ class ComptonData {
 
     // get all data for a particlar etemp
     std::vector<std::vector<std::vector<std::vector<double>>>>get_csk_data(
-                                                                  size_t etemp_reg)
+                                                              size_t etemp_reg)
     {
       // use the provided regions to determine the proper indices:
       size_t ppr_etemp = etemp_pts.size()/(etemp_breakpts.size()-1);
