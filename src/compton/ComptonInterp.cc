@@ -98,8 +98,8 @@ size_t ComptonInterp::find_etemp_region(const double etemp) {
 
 void ComptonInterp::set_xy_and_region(const double gin, const double gout,
                                       const Region region,
-                                      std::pair<size_t,size_t>&ij,
-                                      std::pair<double,double>&xy) {
+                                      std::pair<size_t, size_t> &ij,
+                                      std::pair<double, double> &xy) {
 
   // get x/y interpolation breakpoints from compton_data:
   std::vector<double> xs = Cdata->get_gin_breakpts();
@@ -213,9 +213,9 @@ ComptonInterp::interpolate_etemp(const double etemp) {
 // TODO: the inner interpolate_gin_gout call recalculates the region (and x/y),
 // which is wasteful since gin/gout are fixed (and thus x/y and the region are
 // also fixed)
-std::vector<double>
-ComptonInterp::interpolate_gin_gout(const double gin, const double gout,
-               const std::vector<std::vector<std::vector<double>>>& csk_data) {
+std::vector<double> ComptonInterp::interpolate_gin_gout(
+    const double gin, const double gout,
+    const std::vector<std::vector<std::vector<double>>> &csk_data) {
   // get the electron temperature eval points, too:
   std::vector<double> x_pts = Cdata->get_gin_pts();
   std::vector<double> y_pts = Cdata->get_gout_pts();
@@ -223,24 +223,22 @@ ComptonInterp::interpolate_gin_gout(const double gin, const double gout,
   // make a vector for the return values:
   std::vector<double> interp_data(csk_data[0][0].size(), 0.0);
 
-  // for each xi point 
+  // for each xi point
   for (size_t a = 0; a < interp_data.size(); a++) {
-  //stride through and get the correct "stripe" of data
-  std::vector<std::vector<double>> interp_pts(csk_data.size(), std::vector<double>(csk_data[0].size(), 0.0));
-  for(size_t b=0; b< csk_data.size(); b++)
-  {
-    for(size_t c=0; c< csk_data[0].size(); c++)
-    {
-      interp_pts[b][c] = csk_data[b][c][a];
+    //stride through and get the correct "stripe" of data
+    std::vector<std::vector<double>> interp_pts(
+        csk_data.size(), std::vector<double>(csk_data[0].size(), 0.0));
+    for (size_t b = 0; b < csk_data.size(); b++) {
+      for (size_t c = 0; c < csk_data[0].size(); c++) {
+        interp_pts[b][c] = csk_data[b][c][a];
+      }
     }
+    //interpolate!
+    interp_data[a] = interpolate_gin_gout(interp_pts, x_pts, y_pts, gin, gout);
   }
-  //interpolate!
-  interp_data[a] = interpolate_gin_gout(interp_pts, x_pts, y_pts, gin, gout);
-}
 
   return interp_data;
 }
-
 
 // Use Lagrange interpolation on a set of csk_data points for some electron
 // temperature
@@ -259,27 +257,26 @@ double ComptonInterp::interpolate_etemp(const std::vector<double> &csk_data,
 }
 
 // Use 2-D Lagrange interpolation onf a set of csk_data points, for some gamma
-// in/gamma out combination 
+// in/gamma out combination
 double ComptonInterp::interpolate_gin_gout(
-                              const std::vector<std::vector<double>> &csk_data,
-                              const std::vector<double> &x_data,
-                              const std::vector<double> &y_data,
-                              const double gin, const double gout) {
+    const std::vector<std::vector<double>> &csk_data,
+    const std::vector<double> &x_data, const std::vector<double> &y_data,
+    const double gin, const double gout) {
   // First, we use gamma in and out to determine the global interpolation
   // region (bottom, middle, or top) bounded by the boundary-layer curves
   Region region = find_global_region(gin, gout);
 
-	// find local intervals on which to do interpolation
+  // find local intervals on which to do interpolation
   std::pair<size_t, size_t> ij;
   std::pair<double, double> xy;
 
   set_xy_and_region(gin, gout, region, ij, xy);
-	size_t i_break = ij.first;
+  size_t i_break = ij.first;
   size_t j_break = ij.second;
-	double x = xy.first;
+  double x = xy.first;
   double y = xy.second;
-    
-  // calculate offsets into the provided csk data, depending on the 
+
+  // calculate offsets into the provided csk data, depending on the
   // global region (top, middle, or bottom, relative to boundary-layers in gin
   // and gout) and local region (breakpoint region in x/y)
   size_t x_offset = nx_local * i_break;
@@ -287,27 +284,25 @@ double ComptonInterp::interpolate_gin_gout(
 
   double phi1 = 1.0;
   double phi2 = 1.0;
-  for (size_t j = 0; j < nx_local; ++j)
-  { phi1 *= (x-x_data[x_offset+j]); }
-  for (size_t j = 0; j < ny_local; ++j)
-  { phi2 *= (y-y_data[y_offset+j]); }
- 
+  for (size_t j = 0; j < nx_local; ++j) {
+    phi1 *= (x - x_data[x_offset + j]);
+  }
+  for (size_t j = 0; j < ny_local; ++j) {
+    phi2 *= (y - y_data[y_offset + j]);
+  }
+
   double val = 0.;
-  for (size_t i_loc = 0; i_loc < nx_local; ++i_loc)
-  {
-    for (size_t j_loc = 0; j_loc < ny_local; ++j_loc)
-    {   	                                        
-      size_t x_index = x_offset+i_loc;
-      size_t y_index = y_offset+j_loc;
+  for (size_t i_loc = 0; i_loc < nx_local; ++i_loc) {
+    for (size_t j_loc = 0; j_loc < ny_local; ++j_loc) {
+      size_t x_index = x_offset + i_loc;
+      size_t y_index = y_offset + j_loc;
 
-      double f_val = csk_data[int(region)*x_data.size() + x_index][y_index];
-      val += f_val * (phi1 * prod_x[x_index]) * (phi2 * prod_y[y_index]) / 
-                  ((x - x_data[x_index]) * (y - y_data[y_index]));
-      }
-  } 
+      double f_val = csk_data[int(region) * x_data.size() + x_index][y_index];
+      val += f_val * (phi1 * prod_x[x_index]) * (phi2 * prod_y[y_index]) /
+             ((x - x_data[x_index]) * (y - y_data[y_index]));
+    }
+  }
 
-    return val;
-
+  return val;
 }
-
 }

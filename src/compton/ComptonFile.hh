@@ -12,9 +12,9 @@
 #define __compton_ComptonFile_hh__
 
 #include "ds++/SP.hh"
+#include <fstream>
 #include <string>
 #include <vector>
-#include <fstream>
 
 namespace rtt_compton {
 
@@ -25,9 +25,9 @@ class ComptonFile {
   // useful typedef:
   typedef rtt_dsxx::SP<ComptonData> SP_CompData;
 
-  public:
+public:
   //! Constructor with default binary library type
-  ComptonFile(std::string&, bool binary_=true);
+  ComptonFile(std::string &, bool binary_ = true);
   //! Destructor
   ~ComptonFile();
 
@@ -37,8 +37,7 @@ class ComptonFile {
   //! Public interface to compton library reader
   SP_CompData read_lagrange_csk_data();
 
-
-  private:
+private:
   // name of the file to be read
   std::string libfile;
 
@@ -59,7 +58,6 @@ class ComptonFile {
 
   // read the lagrange csk library in binary format
   SP_CompData read_lagrange_binary_csk_data();
-
 };
 
 } // end namespace rtt_compton
