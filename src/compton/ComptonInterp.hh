@@ -63,7 +63,9 @@ private:
   size_t find_etemp_region(const double);
 
   //! function to determine what local x/y interpolation region we're in
-  std::pair<size_t, size_t> find_xy_region(const double, const double);
+  void set_xy_and_region(const double, const double,  const Region, 
+                          std::pair<size_t,size_t>&,
+                          std::pair<double,double>&);
 
 public:
   // Constructor
@@ -75,16 +77,20 @@ public:
   //! Interpolate ALL gin/gout/xi data in electron temperature
   std::vector<std::vector<std::vector<double>>> interpolate_etemp(const double);
 
+  //! Interpolate ALL xi data for a gin/gout
+  std::vector<double> interpolate_gin_gout(const double, 
+               const double,
+               const std::vector<std::vector<std::vector<double>>>&);
+
   //! Use Lagrange interpolation on a single etemp point
   double interpolate_etemp(const std::vector<double> &,
                            const std::vector<double> &, const double);
 
   //! Use Lagrange interpolation on a single frequency in/out pair
-  /*double interpolate_gin_gout(const std::vector<double>&,
+  double interpolate_gin_gout(const std::vector<std::vector<double>>&,
                                           const std::vector<double>&,
                                           const std::vector<double>&,
-                                          const std::vector<double>&,
-                                          const double, const double);*/
+                                          const double, const double);
 };
 }
 #endif
