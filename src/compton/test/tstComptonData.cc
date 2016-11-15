@@ -87,13 +87,7 @@ void tst_std_data(rtt_dsxx::ScalarUnitTest& ut)
   }
 
   // next, set all of the standard data vectors:
-  /*Cdata->set_etemp_pts(etemp);
-  Cdata->set_gin_pts(gin);
-  Cdata->set_gout_pts(gout);
-  Cdata->set_xi_pts(xi);*/
-
   Cdata->set_evalpts(etemp, gin, gout, xi);
-
   Cdata->set_csk_data(fake_data);
 
   std::vector<double>etemp_check = Cdata->get_etemp_pts();
@@ -223,19 +217,8 @@ void tst_lagrange_data(rtt_dsxx::ScalarUnitTest& ut)
   }
 
   // next, set all of the standard and breakpoint vectors:
-  /*Cdata->set_etemp_breakpts(etemp_bp);
-  Cdata->set_gin_breakpts(gin_bp);
-  Cdata->set_gout_breakpts(gout_bp);*/
-
   Cdata->set_breakpts(etemp_bp, gin_bp, gout_bp);
-
-  /*Cdata->set_etemp_pts(etemp);
-  Cdata->set_gin_pts(gin);
-  Cdata->set_gout_pts(gout);
-  Cdata->set_xi_pts(xi);*/
-
   Cdata->set_evalpts(etemp, gin, gout, xi);
-
   Cdata->set_csk_data(fake_data);
 
   std::vector<double>etemp_bpcheck = Cdata->get_etemp_breakpts();
@@ -395,19 +378,8 @@ void tst_data_slices(rtt_dsxx::ScalarUnitTest& ut)
 
   // next, set all of the standard and breakpoint vectors in the ComptonData 
   // container:
-  /*Cdata->set_etemp_breakpts(etemp_bp);
-  Cdata->set_gin_breakpts(gin_bp);
-  Cdata->set_gout_breakpts(gout_bp);*/
-
   Cdata->set_breakpts(etemp_bp, gin_bp, gout_bp);
-
-  /*Cdata->set_etemp_pts(etemp);
-  Cdata->set_gin_pts(gin);
-  Cdata->set_gout_pts(gout);
-  Cdata->set_xi_pts(xi);*/
-
   Cdata->set_evalpts(etemp, gin, gout, xi);
-
   Cdata->set_csk_data(fake_data);
 
   // get the slice of data corresponding to electron temperature index 0:
