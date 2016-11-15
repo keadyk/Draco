@@ -257,7 +257,7 @@ void tst_1D_interp(rtt_dsxx::ScalarUnitTest &ut) {
 // to check the implementation.
 void tst_2D_interp(rtt_dsxx::ScalarUnitTest &ut) {
   // TEST ONE: Interpolation of linear CSK data.
-  /*{
+  {
   std::cout << "==============================================" << std::endl;
   std::cout << "=== Testing frequency in/out interpolation ===" << std::endl;
   std::cout << "==============================================" << std::endl;
@@ -286,11 +286,10 @@ void tst_2D_interp(rtt_dsxx::ScalarUnitTest &ut) {
   std::vector<double>etempbpts(netempbp, 0.0);
   
   // fill in the data:
-  ginpts[0] = 0.25;
-  ginpts[1] = 0.75;
-
-  goutpts[0] = 0.25;
-  goutpts[1] = 0.75;
+  ginpts[0] = 0.20;
+  ginpts[1] = 0.80;
+  goutpts[0] = 0.20;
+  goutpts[1] = 0.80;
 
   etemppts[0] = 0.5;
 
@@ -314,50 +313,114 @@ void tst_2D_interp(rtt_dsxx::ScalarUnitTest &ut) {
     std::vector<std::vector<double>>(ngout, std::vector<double>(nxi, 0.0))));
 
   // now, form the actual csk data:
-  for(size_t a = 0; a < netemp; a++)
+  // (take advantage of the fact that the vector is size 1 in xi and etemp
+  // to simplify the loops)
+  for(size_t b = 0; b < 3*ngin; b++)
   {
-    for(size_t b = 0; b < 3*ngin; b++)
-    {
-      for(size_t c = 0; c < ngout; c++)
-      {
-        for(size_t d = 0; d < nxi; d++)
-        {
-          fake_data[a][b][c][d] = static_cast<double>(a*(3*4)+b*4+c) + 0.5;
-        }
-      }
-    }
+    fake_data[0][b][0][0] = 1.25*(b+0.5);
+    fake_data[0][b][1][0] = 1.25*(b+0.5) + 0.5;
   }
+
   Cdata->set_csk_data(fake_data);
+
+  // grab the etemp-0 data:
+  std::vector<std::vector<std::vector<double>>>input_data = fake_data[0];
 
   // try to make a compton interpolation object
   ComptonInterp Cinterp(Cdata);
-  
-  // pick an electron temperature w/in the breakpoint bounds:
-  double test_etemp1 = 0.55;
 
-  // interpolate ALL data in gin, gout, and xi for the given etemp:
-  std::vector<std::vector<std::vector<double>>> interp_etemp1 =
-    Cinterp.interpolate_etemp(test_etemp1);
+  // pick gamma in/out values to test all three boundary-layer regions:
+  double test_gin1 = 0.33;
+  double test_gin2 = 0.6;
+  double test_gin3 = 0.5;
+  double test_gin4 = 0.25;
 
-  // Check the results:
-  for(size_t g=0; g<interp_etemp1.size(); g++)
-  {
-    for(size_t h=0; h<interp_etemp1[g].size(); h++)
-    {
-      double lin_value = fake_data[0][g][h][0] + 
-                            (0.55-etemppts[0])/(etemppts[1]-etemppts[0])*
-                            (fake_data[1][g][h][0] - fake_data[0][g][h][0]);
-      if(!soft_equiv(interp_etemp1[g][h][0], lin_value)) ITFAILS;
-    }
+  double test_gout1 = 0.1;
+  double test_gout2 = 0.4;
+  double test_gout3 = 0.52;
+  double test_gout4 = 0.77;
+
+  // interpolate ALL data in xi for the given gin/gout pair 
+  // (just 1 point in xi for the case considered here):
+  std::vector<double> interp_ginout1 = 
+    Cinterp.interpolate_gin_gout(test_gin1, test_gout1, input_data);
+  std::vector<double> interp_ginout2 = 
+    Cinterp.interpolate_gin_gout(test_gin2, test_gout1, input_data);
+  std::vector<double> interp_ginout3 = 
+    Cinterp.interpolate_gin_gout(test_gin2, test_gout2, input_data);
+  std::vector<double> interp_ginout4 = 
+    Cinterp.interpolate_gin_gout(test_gin3, test_gout2, input_data);
+  std::vector<double> interp_ginout5 = 
+    Cinterp.interpolate_gin_gout(test_gin3, test_gout3, input_data);
+  std::vector<double> interp_ginout6 = 
+    Cinterp.interpolate_gin_gout(test_gin4, test_gout4, input_data);
+
+  // while we're at it, check to see that the original x/y points correctly
+  // evaluate to the CSK data... (or get close, at least)
+  std::vector<double> interp_ginout7 = 
+    Cinterp.interpolate_gin_gout(0.20000001, 1.0000001, input_data);
+  std::vector<double> interp_ginout8 = 
+    Cinterp.interpolate_gin_gout(0.2000001, 0.4000001, input_data);
+
+  // compare the interp results to the reference cases for the low, 
+  // middle, and high regions:
+  double x_coeff = 2.083333333;
+  double y_coeff = 0.833333333;
+  double c_lo = 0.041666667; //(green. c lo green.)
+  double c_mid = 2.541666667; 
+  double c_hi = 5.041666667;
+
+  // calculate the reference values (remembering to conver gin/out into x/y):
+  double val1 = x_coeff*test_gin1 + y_coeff*(1.0 - 
+                      (2.0*test_gin1*test_gout1)/(test_gin1-test_gout1)) + c_lo;
+  double val2 = x_coeff*test_gin2 + y_coeff*(1.0 - 
+                      (2.0*test_gin2*test_gout1)/(test_gin2-test_gout1)) + c_lo;
+  double val3 = x_coeff*test_gin2 + y_coeff*(1.0 - 
+                     (test_gin2-test_gout2)/(2.0*test_gin2*test_gout2)) + c_mid;
+  double val4 = x_coeff*test_gin3 + y_coeff*(1.0 - 
+                     (test_gin3-test_gout2)/(2.0*test_gin3*test_gout2)) + c_mid;
+  double val5 = x_coeff*test_gin3 + y_coeff*(test_gout3-test_gin3) + c_hi;
+  double val6 = x_coeff*test_gin4 + y_coeff*(test_gout4-test_gin4) + c_hi;
+
+  if(!soft_equiv(val1, interp_ginout1[0], 1e-7)) {
+    std::cout << val1 << " != " << interp_ginout1[0] << std::endl;
+    FAILMSG("Interp failed in bottom boundary-layer region!");
+  }
+  if(!soft_equiv(val2, interp_ginout2[0], 1e-7)) {
+    std::cout << val2 << " != " << interp_ginout2[0] << std::endl;
+    FAILMSG("Interp failed in bottom boundary-layer region!");
+  }
+  if(!soft_equiv(val3, interp_ginout3[0], 1e-7)) {
+    std::cout << val3 << " != " << interp_ginout3[0] << std::endl;
+    FAILMSG("Interp failed in middle boundary-layer region!");
+  }
+  if(!soft_equiv(val4, interp_ginout4[0], 1e-7)) {
+    std::cout << val4 << " != " << interp_ginout4[0] << std::endl;
+    FAILMSG("Interp failed in middle boundary-layer region!");
+  }
+  if(!soft_equiv(val5, interp_ginout5[0], 1e-7)) {
+    std::cout << val5 << " != " << interp_ginout5[0] << std::endl;
+    FAILMSG("Interp failed in top boundary-layer region!");
+  }
+  if(!soft_equiv(val6, interp_ginout6[0], 1e-7)) {
+    std::cout << val6 << " != " << interp_ginout6[0] << std::endl;
+    FAILMSG("Interp failed in top boundary-layer region!");
+  }
+  if(!soft_equiv(6.125, interp_ginout7[0], 1e-4)) {
+    std::cout << 6.125 << " != " << interp_ginout7[0] << std::endl;
+    FAILMSG("Interp failed to reproduce CSK data point!");
+  }
+  if(!soft_equiv(5.625, interp_ginout8[0], 1e-4)) {
+    std::cout << 5.625 << " != " << interp_ginout8[0] << std::endl;
+    FAILMSG("Interp failed to reproduce CSK data point!");
   }
 
   if(ut.numFails == 0)
-  { PASSMSG("ComptonInterp linear function interpolation okay."); } 
+  { PASSMSG("ComptonInterp 2-D linear function interpolation okay."); } 
   else
-  { FAILMSG("ComptonInterp linear function interpolation failed!"); }
+  { FAILMSG("ComptonInterp 2-D linear function interpolation failed!"); }
 
-  }*/
-  FAILMSG("2-D gin/gout interpolation not implemented yet!");
+  }
 }
 
 int main(int argc, char *argv[]) {
