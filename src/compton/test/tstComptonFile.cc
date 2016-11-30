@@ -229,21 +229,18 @@ void check_std_points(rtt_dsxx::ScalarUnitTest &ut,
     gin_ref = 0.05 + a * 0.1;
     if (!soft_equiv(gin_pts[a], gin_ref))
       ITFAILS;
-    ;
   }
   // finely-discretized region
   for (size_t b = 0; b < 5; b++) {
     etemp_ref = 0.025 + b * 0.05;
     if (!soft_equiv(etemp_pts[b], etemp_ref))
       ITFAILS;
-    ;
   }
   // coarsely-discretized region
   for (size_t c = 0; c < 5; c++) {
     etemp_ref = 0.325 + c * 0.15;
     if (!soft_equiv(etemp_pts[5 + c], etemp_ref))
       ITFAILS;
-    ;
   }
 
   // check the arbitrarily-discretized data
