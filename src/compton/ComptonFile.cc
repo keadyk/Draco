@@ -37,7 +37,6 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_csk_data() {
 }
 
 // Interface to lagrange csk data read:
-//std::vector<std::vector<std::vector<std::vector<double>>>>
 rtt_dsxx::SP<ComptonData> ComptonFile::read_lagrange_csk_data() {
   // return value
   SP_CompData Cdata;
@@ -50,8 +49,6 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_lagrange_csk_data() {
   return Cdata;
 }
 
-// TODO: IF we go with the angular moment-based method, we should take out the
-// xi-eval-pt read (line 2 of the file)
 rtt_dsxx::SP<ComptonData> ComptonFile::read_binary_csk_data() {
   // *************************************************************************
   // ************************ OPEN THE DATA FILE *****************************
@@ -76,12 +73,14 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_binary_csk_data() {
   // declare variables for number of eval pts in gamma in, gamma out, xi, and
   // etemp:
   size_t n_gin, n_gout, n_xi, n_etemp;
+  // bool to interpret data as explicit CSK values or Legendre moments:
+  bool legendre;
 
   // make a vector to hold the raw size data:
-  std::vector<char> size_data(4 * sizeof(size_t));
+  std::vector<char> size_data(4 * sizeof(size_t) + sizeof(bool));
 
   // grab the first value (number of electron temp points)
-  csk_data.read(&size_data[0], 4 * sizeof(size_t));
+  csk_data.read(&size_data[0], 4 * sizeof(size_t) + sizeof(bool));
 
   // check for failure
   if (csk_data.fail()) {
@@ -100,27 +99,34 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_binary_csk_data() {
   // cast raw character data to size_t
   std::memcpy(&n_xi, &size_data[3 * sizeof(size_t)], sizeof(size_t));
 
+  // cast raw character data to size_t
+  std::memcpy(&legendre, &size_data[4 * sizeof(size_t)], sizeof(bool));
+
   // initialize data container for the "raw" csk values:
   bool lagrange = false;
-  SP_CompData Cdata(new ComptonData(n_etemp, n_gin, n_gout, n_xi, lagrange));
+  SP_CompData Cdata(
+      new ComptonData(n_etemp, n_gin, n_gout, n_xi, lagrange, legendre));
 
   // *************************************************************************
   // ************************ GET THE XI POINTS ******************************
   // *************************************************************************
-  // get the next n_xi * sizeof(double) bytes from the file
+  // get the next n_xi * sizeof(double) bytes from the file, if the xi points
+  // are explicitly generated
   // allocate temporary vectors for xi data:
   std::vector<double> xi_pts(n_xi, 0.0);
-  std::vector<char> xi_data(n_xi * sizeof(double));
-  csk_data.read(&xi_data[0], n_xi * sizeof(double));
-  // check for failure:
-  if (csk_data.fail()) {
-    Insist(0, "Failed to read xi eval points!");
-  }
+  if (!legendre) {
+    std::vector<char> xi_data(n_xi * sizeof(double));
+    csk_data.read(&xi_data[0], n_xi * sizeof(double));
+    // check for failure:
+    if (csk_data.fail()) {
+      Insist(0, "Failed to read xi eval points!");
+    }
 
-  for (size_t m = 0; m < n_xi; m++) {
-    double xi;
-    std::memcpy(&xi, &xi_data[m * sizeof(double)], sizeof(double));
-    xi_pts[m] = xi;
+    for (size_t m = 0; m < n_xi; m++) {
+      double xi;
+      std::memcpy(&xi, &xi_data[m * sizeof(double)], sizeof(double));
+      xi_pts[m] = xi;
+    }
   }
 
   // *************************************************************************
@@ -247,6 +253,8 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_ascii_csk_data() {
   // declare variables for number of eval pts in gamma in, gamma out, xi, and
   // etemp:
   size_t n_gin, n_gout, n_xi, n_etemp;
+  // bool to interpret data as explicit xi points or legendre moments:
+  bool legendre;
 
   // string to hold the first line:
   std::string sizeline;
@@ -285,25 +293,35 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_ascii_csk_data() {
     Insist(0, "Failed to read number of xi points!");
   }
 
+  // grab the fourth value (number of xi points)
+  size_data >> legendre;
+  // check for failure
+  if (size_data.fail()) {
+    Insist(0, "Failed to read legendre flag!");
+  }
+
   // initialize data container for the "raw" csk values:
   bool lagrange = false;
-  SP_CompData Cdata(new ComptonData(n_etemp, n_gin, n_gout, n_xi, lagrange));
+  SP_CompData Cdata(
+      new ComptonData(n_etemp, n_gin, n_gout, n_xi, lagrange, legendre));
 
   // *************************************************************************
   // ************************ GET THE XI POINTS ******************************
   // *************************************************************************
   // make a temporary vector to hold the xi points
   std::vector<double> xi_pts(n_xi, 0.0);
-  // (recycle the string from the previous line)
-  getline(csk_data, sizeline);
-  std::stringstream xi_data(sizeline);
-  for (size_t m = 0; m < n_xi; m++) {
-    double xi;
-    xi_data >> xi;
-    if (!xi_data.fail()) {
-      xi_pts[m] = xi;
-    } else {
-      Insist(0, "CSK data read failed!");
+  if (!legendre) {
+    // (recycle the string from the previous line)
+    getline(csk_data, sizeline);
+    std::stringstream xi_data(sizeline);
+    for (size_t m = 0; m < n_xi; m++) {
+      double xi;
+      xi_data >> xi;
+      if (!xi_data.fail()) {
+        xi_pts[m] = xi;
+      } else {
+        Insist(0, "CSK data read failed!");
+      }
     }
   }
 
@@ -419,6 +437,7 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_lagrange_ascii_csk_data() {
   // etemp (including breakpoints and "local" eval points):
   size_t n_ginbp, n_goutbp, n_etempbp;
   size_t n_gin, n_gout, n_xi, n_etemp;
+  bool legendre;
 
   // string to hold the first line:
   std::string sizeline;
@@ -460,9 +479,18 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_lagrange_ascii_csk_data() {
     Insist(0, "Failed to read number of xi points!");
   }
 
+  // grab the fifth value (legendre flag)
+  size_data >> legendre;
+  // check for failure
+  if (size_data.fail()) {
+    Insist(0, "Failed to read legendre flag!");
+  }
+
   // initialize data container for the "raw" csk values:
   SP_CompData Cdata;
-  Cdata.reset(new ComptonData(n_etemp, n_gin, n_gout, n_xi));
+  bool lagrange = true;
+  Cdata.reset(
+      new ComptonData(n_etemp, n_gin, n_gout, n_xi, lagrange, legendre));
 
   // *************************************************************************
   // *********************** GET THE BREAKPOINTS *****************************
@@ -516,15 +544,17 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_lagrange_ascii_csk_data() {
   // *************************************************************************
   std::vector<double> xi_pts(n_xi, 0.0);
   // (recycle the string from the previous line)
-  getline(csk_data, sizeline);
-  std::stringstream xi_data(sizeline);
-  for (size_t m = 0; m < n_xi; m++) {
-    double xi;
-    xi_data >> xi;
-    if (!xi_data.fail()) {
-      xi_pts[m] = xi;
-    } else {
-      Insist(0, "CSK data read failed!");
+  if (!legendre) {
+    getline(csk_data, sizeline);
+    std::stringstream xi_data(sizeline);
+    for (size_t m = 0; m < n_xi; m++) {
+      double xi;
+      xi_data >> xi;
+      if (!xi_data.fail()) {
+        xi_pts[m] = xi;
+      } else {
+        Insist(0, "CSK data read failed!");
+      }
     }
   }
 
@@ -644,12 +674,14 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_lagrange_binary_csk_data() {
   // etemp:
   size_t n_ginbp, n_goutbp, n_etempbp;
   size_t n_gin, n_gout, n_xi, n_etemp;
+  // flag to interpret data as explicit CSK or Legendre moments
+  bool legendre;
 
   // make a vector to hold the raw size data:
-  std::vector<char> size_data(7 * sizeof(size_t));
+  std::vector<char> size_data(7 * sizeof(size_t) + sizeof(bool));
 
   // grab the first value (number of electron temp points)
-  csk_data.read(&size_data[0], 7 * sizeof(size_t));
+  csk_data.read(&size_data[0], 7 * sizeof(size_t) + sizeof(bool));
 
   // check for failure
   if (csk_data.fail()) {
@@ -671,8 +703,13 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_lagrange_binary_csk_data() {
   // cast raw character data to size_t
   std::memcpy(&n_xi, &size_data[6 * sizeof(size_t)], sizeof(size_t));
 
+  // cast raw character data to bool
+  std::memcpy(&legendre, &size_data[7 * sizeof(size_t)], sizeof(bool));
+
   // initialize data container for the "raw" csk values:
-  SP_CompData Cdata(new ComptonData(n_etemp, n_gin, n_gout, n_xi));
+  bool lagrange = true;
+  SP_CompData Cdata(
+      new ComptonData(n_etemp, n_gin, n_gout, n_xi, lagrange, legendre));
 
   // *************************************************************************
   // *********************** GET THE BREAKPOINTS *****************************
@@ -730,17 +767,19 @@ rtt_dsxx::SP<ComptonData> ComptonFile::read_lagrange_binary_csk_data() {
 
   // get the next n_xi * sizeof(double) bytes from the file
   std::vector<double> xi_pts(n_xi, 0.0);
-  std::vector<char> xi_data(n_xi * sizeof(double));
-  csk_data.read(&xi_data[0], n_xi * sizeof(double));
-  // check for failure:
-  if (csk_data.fail()) {
-    Insist(0, "Failed to read xi eval points!");
-  }
+  if (!legendre) {
+    std::vector<char> xi_data(n_xi * sizeof(double));
+    csk_data.read(&xi_data[0], n_xi * sizeof(double));
+    // check for failure:
+    if (csk_data.fail()) {
+      Insist(0, "Failed to read xi eval points!");
+    }
 
-  for (size_t m = 0; m < n_xi; m++) {
-    double xi;
-    std::memcpy(&xi, &xi_data[m * sizeof(double)], sizeof(double));
-    xi_pts[m] = xi;
+    for (size_t m = 0; m < n_xi; m++) {
+      double xi;
+      std::memcpy(&xi, &xi_data[m * sizeof(double)], sizeof(double));
+      xi_pts[m] = xi;
+    }
   }
 
   // *************************************************************************
