@@ -10,7 +10,6 @@
 #ifndef __compton_ComptonInterp_hh__
 #define __compton_ComptonInterp_hh__
 
-#include "ComptonData.hh"
 #include "ds++/SP.hh"
 #include <cmath>
 #include <iostream>
@@ -32,6 +31,8 @@
  * \arg SP<ComptonData> - smart pointer to a Compton Data object
  *
  */
+
+class ComptonData;
 
 namespace rtt_compton {
 

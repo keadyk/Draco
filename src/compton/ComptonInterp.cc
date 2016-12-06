@@ -8,6 +8,7 @@
  *         All rights reserved.
  */
 
+#include "ComptonData.hh"
 #include "ComptonInterp.hh"
 #include <sstream>
 
