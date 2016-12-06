@@ -23,6 +23,211 @@ using rtt_compton::ComptonData;
 using rtt_dsxx::SP;
 using rtt_dsxx::soft_equiv;
 
+void tst_accessors(rtt_dsxx::ScalarUnitTest &ut) {
+  std::cout << "==============================================" << std::endl;
+  std::cout << "====== Testing ComptonData construction ======" << std::endl;
+  std::cout << "==============================================" << std::endl;
+
+  size_t n_etempbp = 5;
+  size_t n_ginbp = 3;
+  size_t n_goutbp = 10;
+
+  size_t n_etemp = 2;
+  size_t n_gin = 33;
+  size_t n_gout = 33;
+  size_t n_xi = 41;
+
+  double etemp_bpval = 8888.0;
+  double gin_bpval = 7777.0;
+  double gout_bpval = 6666.0;
+
+  double etemp_val = 5555.0;
+  double gin_val = 4444.0;
+  double gout_val = 3333.0;
+  double xi_val = -0.2222;
+  bool lagrange = true;
+  bool legendre = false;
+
+  // create data arrays:
+  std::vector<double> etemp_bpts(n_etempbp, etemp_bpval);
+  std::vector<double> gin_bpts(n_ginbp, gin_bpval);
+  std::vector<double> gout_bpts(n_goutbp, gout_bpval);
+
+  std::vector<double> etemp_pts(n_etemp, etemp_val);
+  std::vector<double> gin_pts(n_gin, gin_val);
+  std::vector<double> gout_pts(n_gout, gout_val);
+  std::vector<double> xi_pts(n_xi, xi_val);
+
+  ComptonData Cdata(n_etemp, n_gin, n_gout, n_xi, lagrange, legendre);
+
+  // test bool accessors
+  if (Cdata.is_legendre())
+    ITFAILS;
+  if (!Cdata.is_lagrange())
+    ITFAILS;
+
+  // set data arrays in the Cdata object:
+  Cdata.set_evalpts(etemp_pts, gin_pts, gout_pts, xi_pts);
+  Cdata.set_breakpts(etemp_bpts, gin_bpts, gout_bpts);
+
+  // Fill in certain points of the fake data...
+  std::vector<std::vector<std::vector<std::vector<double>>>> fake_data(
+      n_etemp, std::vector<std::vector<std::vector<double>>>(
+                   3 * n_gin, std::vector<std::vector<double>>(
+                                  n_gout, std::vector<double>(n_xi, 0.0))));
+  fake_data[0][0][0][0] = 1.2345;
+  fake_data[n_etemp - 1][3 * n_gin - 1][n_gout - 1][n_xi - 1] = 6.789;
+  Cdata.set_csk_data(fake_data);
+
+  // test data sizes:
+  if (Cdata.get_n_etemp_breakpts() != n_etempbp)
+    ITFAILS;
+  if (Cdata.get_n_gin_breakpts() != n_ginbp)
+    ITFAILS;
+  if (Cdata.get_n_gout_breakpts() != n_goutbp)
+    ITFAILS;
+
+  if (Cdata.get_n_etemp_pts() != n_etemp)
+    ITFAILS;
+  if (Cdata.get_n_gin_pts() != n_gin)
+    ITFAILS;
+  if (Cdata.get_n_gout_pts() != n_gout)
+    ITFAILS;
+  if (Cdata.get_n_xi_pts() != n_xi)
+    ITFAILS;
+
+  if (Cdata.get_csk_data()[0][0][0][0] != 1.2345)
+    ITFAILS;
+  if (Cdata.get_csk_data()[n_etemp - 1][3 * n_gin - 1][n_gout - 1][n_xi - 1] !=
+      6.789)
+    ITFAILS;
+
+  // test all of the non-const get routines:
+  {
+    std::vector<double> etemp_bpcomp = Cdata.get_etemp_breakpts();
+    std::vector<double> gin_bpcomp = Cdata.get_gin_breakpts();
+    std::vector<double> gout_bpcomp = Cdata.get_gout_breakpts();
+
+    std::vector<double> etemp_comp = Cdata.get_etemp_pts();
+    std::vector<double> gin_comp = Cdata.get_gin_pts();
+    std::vector<double> gout_comp = Cdata.get_gout_pts();
+    std::vector<double> xi_comp = Cdata.get_xi_pts();
+
+    for (size_t a = 0; a < etemp_bpcomp.size(); a++) {
+      if (etemp_bpcomp[a] != etemp_bpval)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < gin_bpcomp.size(); a++) {
+      if (gin_bpcomp[a] != gin_bpval)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < gout_bpcomp.size(); a++) {
+      if (gout_bpcomp[a] != gout_bpval)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < etemp_comp.size(); a++) {
+      if (etemp_comp[a] != etemp_val)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < gin_comp.size(); a++) {
+      if (gin_comp[a] != gin_val)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < gout_comp.size(); a++) {
+      if (gout_comp[a] != gout_val)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < xi_comp.size(); a++) {
+      if (xi_comp[a] != xi_val)
+        ITFAILS;
+    }
+  }
+
+  if (ut.numFails == 0) {
+    PASSMSG("All non-const ComptonData accessors functioned correctly.");
+  } else {
+    FAILMSG("Some non-const ComptonData accessors functioned incorrectly!");
+  }
+
+  const ComptonData *cCdata(&Cdata);
+
+  // test data sizes:
+  if (cCdata->get_n_etemp_breakpts() != n_etempbp)
+    ITFAILS;
+  if (cCdata->get_n_gin_breakpts() != n_ginbp)
+    ITFAILS;
+  if (cCdata->get_n_gout_breakpts() != n_goutbp)
+    ITFAILS;
+
+  if (cCdata->get_n_etemp_pts() != n_etemp)
+    ITFAILS;
+  if (cCdata->get_n_gin_pts() != n_gin)
+    ITFAILS;
+  if (cCdata->get_n_gout_pts() != n_gout)
+    ITFAILS;
+  if (cCdata->get_n_xi_pts() != n_xi)
+    ITFAILS;
+
+  if (cCdata->get_csk_data()[0][0][0][0] != 1.2345)
+    ITFAILS;
+  if (cCdata->get_csk_data()[n_etemp - 1][3 * n_gin - 1][n_gout - 1]
+                            [n_xi - 1] != 6.789)
+    ITFAILS;
+
+  // test all of the const get routines:
+  {
+    std::vector<double> etemp_bpcomp = cCdata->get_etemp_breakpts();
+    std::vector<double> gin_bpcomp = cCdata->get_gin_breakpts();
+    std::vector<double> gout_bpcomp = cCdata->get_gout_breakpts();
+
+    std::vector<double> etemp_comp = cCdata->get_etemp_pts();
+    std::vector<double> gin_comp = cCdata->get_gin_pts();
+    std::vector<double> gout_comp = cCdata->get_gout_pts();
+    std::vector<double> xi_comp = cCdata->get_xi_pts();
+
+    for (size_t a = 0; a < etemp_bpcomp.size(); a++) {
+      if (etemp_bpcomp[a] != etemp_bpval)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < gin_bpcomp.size(); a++) {
+      if (gin_bpcomp[a] != gin_bpval)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < gout_bpcomp.size(); a++) {
+      if (gout_bpcomp[a] != gout_bpval)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < etemp_comp.size(); a++) {
+      if (etemp_comp[a] != etemp_val)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < gin_comp.size(); a++) {
+      if (gin_comp[a] != gin_val)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < gout_comp.size(); a++) {
+      if (gout_comp[a] != gout_val)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < xi_comp.size(); a++) {
+      if (xi_comp[a] != xi_val)
+        ITFAILS;
+    }
+  }
+
+  if (ut.numFails == 0) {
+    PASSMSG("All const ComptonData accessors functioned correctly.");
+  } else {
+    FAILMSG("Some const ComptonData accessors functioned incorrectly!");
+  }
+
+  if (ut.numFails == 0) {
+    std::cout << "ComptonData accessor unit test PASSED." << std::endl;
+  } else {
+    std::cout << "ComptonData accessor unit test FAILED." << std::endl;
+  }
+}
+
 void tst_std_data(rtt_dsxx::ScalarUnitTest &ut) {
   std::cout << "==============================================" << std::endl;
   std::cout << "=== Testing standard ComptonData container ===" << std::endl;
@@ -480,6 +685,7 @@ void tst_data_slices(rtt_dsxx::ScalarUnitTest &ut) {
 int main(int argc, char *argv[]) {
   rtt_dsxx::ScalarUnitTest ut(argc, argv, rtt_dsxx::release);
   try {
+    tst_accessors(ut);
     tst_std_data(ut);
     tst_lagrange_data(ut);
     tst_data_slices(ut);
