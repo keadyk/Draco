@@ -8,8 +8,8 @@
  *         All rights reserved.
  */
 
-#include "ComptonData.hh"
 #include "ComptonInterp.hh"
+#include "ComptonData.hh"
 #include <sstream>
 
 namespace rtt_compton {
