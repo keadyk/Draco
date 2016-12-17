@@ -32,10 +32,11 @@ public:
   ~ComptonFile();
 
   //! Public interface to compton library reader
-  SP_CompData read_csk_data();
+  //SP_CompData read_csk_data();
+  SP_CompData read_mg_data();
 
   //! Public interface to compton library reader
-  SP_CompData read_lagrange_csk_data();
+  //SP_CompData read_lagrange_csk_data();
 
 private:
   // name of the file to be read
@@ -48,7 +49,7 @@ private:
   bool binary;
 
   // read the csk library in binary format
-  SP_CompData read_binary_csk_data();
+  /*SP_CompData read_binary_csk_data();
 
   // read the csk library in ascii format
   SP_CompData read_ascii_csk_data();
@@ -57,7 +58,10 @@ private:
   SP_CompData read_lagrange_ascii_csk_data();
 
   // read the lagrange csk library in binary format
-  SP_CompData read_lagrange_binary_csk_data();
+  SP_CompData read_lagrange_binary_csk_data();*/
+
+  SP_CompData read_mg_library_ascii(std::string &);
+  SP_CompData read_mg_library_binary(std::string &);
 };
 
 } // end namespace rtt_compton
