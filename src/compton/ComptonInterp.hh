@@ -33,6 +33,7 @@
  */
 namespace rtt_compton {
 
+// Forward declare compton data class (we use only pointers to it here)
 class ComptonData;
 
 // Enumerated type to describe the interpolation regions
@@ -52,29 +53,17 @@ private:
   //std::vector<double> xs, ys, etemps;
   std::vector<double> etemps;
 
-  //! Number of breakpoints per variable:
-  //size_t nx_break, ny_break, netemp_break;
+  //! Number of breakpoints in electron temperature:
   size_t netemp_break;
+
   //! Number of local interpolation points per breakpoint region:
-  //size_t nx_local, ny_local, netemp_local;
   size_t netemp_local;
 
+  // binary search to find the correct bin:
   size_t binary_search(const double, const std::vector<double> &);
-
-  //! function to find what gamma in/gamma out region we're in
-  //Region find_global_region(const double, const double);
 
   //! function to determine what electron temp interpolation region we're in
   size_t find_etemp_region(const double);
-
-  //! function to determine what local x/y interpolation region we're in
-  /*void set_xy_and_region(const double, const double, const Region,
-                         std::pair<size_t, size_t> &,
-                         std::pair<double, double> &);*/
-
-  //void grid_bilog(size_t M, double h, std::vector<double> &xs);
-
-  //void grid_bilog(double a, double b, size_t M, double h, std::vector<double> &xs);
 
 public:
   // Constructor
@@ -86,28 +75,9 @@ public:
   //! Interpolate ALL gin/gout/xi data in electron temperature
   std::vector<std::vector<std::vector<double>>> interpolate_etemp(const double);
 
-  //! Interpolate ALL xi data for a gin/gout
-  /*std::vector<double>
-  interpolate_gin_gout(const double, const double,
-                       const std::vector<std::vector<std::vector<double>>> &);
-  */
-  //! Use Lagrange interpolation on a single etemp point
+  //! Interpolate for a single etemp point
   double interpolate_etemp(const std::vector<double> &,
                            const std::vector<double> &, const double);
-  /*
-  //! Use Lagrange interpolation on a single frequency in/out pair
-  double interpolate_gin_gout(const std::vector<std::vector<double>> &,
-                              const std::vector<double> &,
-                              const std::vector<double> &, const double,
-                              const double);
-
-  double integrate_gout(double gamma1, double gamma1_min,
-                                          double gamma1_max, double gamma2_min,
-                                          double gamma2_max, size_t l_leg);
-
-  double integrate_gin_gout(double gamma1, double gamma1_min,
-                                          double gamma1_max, double gamma2_min,
-                                          double gamma2_max, size_t l_leg);*/
 };
 }
 #endif
