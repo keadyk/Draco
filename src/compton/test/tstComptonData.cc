@@ -70,6 +70,9 @@ void tst_accessors(rtt_dsxx::ScalarUnitTest &ut) {
   if (Cdata.get_n_leg() != n_leg)
     ITFAILS;
 
+  if (Cdata.get_n_grps() != n_grp)
+    ITFAILS;
+
   if (Cdata.get_csk_data()[0][0][0][0] != 1.2345)
     ITFAILS;
   if (Cdata.get_csk_data()[n_etemp - 1][n_grp - 1][n_grp - 1][n_leg - 1] !=
@@ -86,7 +89,6 @@ void tst_accessors(rtt_dsxx::ScalarUnitTest &ut) {
       if (etemp_bpcomp[a] != etemp_bpval)
         ITFAILS;
     }
-
     for (size_t a = 0; a < etemp_comp.size(); a++) {
       if (etemp_comp[a] != etemp_val)
         ITFAILS;
@@ -115,6 +117,9 @@ void tst_accessors(rtt_dsxx::ScalarUnitTest &ut) {
   if (cCdata->get_n_leg() != n_leg)
     ITFAILS;
 
+  if (cCdata->get_n_grps() != n_grp)
+    ITFAILS;
+
   if (cCdata->get_csk_data()[0][0][0][0] != 1.2345)
     ITFAILS;
   if (cCdata->get_csk_data()[n_etemp - 1][n_grp - 1][n_grp - 1][n_leg - 1] !=
@@ -124,12 +129,19 @@ void tst_accessors(rtt_dsxx::ScalarUnitTest &ut) {
   // test all of the const get routines:
   {
     std::vector<double> etemp_bpcomp = cCdata->get_etemp_breakpts();
-
     std::vector<double> etemp_comp = cCdata->get_etemp_pts();
     std::vector<double> grp_bds_comp = cCdata->get_group_bds();
 
     for (size_t a = 0; a < etemp_bpcomp.size(); a++) {
       if (etemp_bpcomp[a] != etemp_bpval)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < etemp_comp.size(); a++) {
+      if (etemp_comp[a] != etemp_val)
+        ITFAILS;
+    }
+    for (size_t a = 0; a < grp_bds_comp.size(); a++) {
+      if (grp_bds_comp[a] != grp_val)
         ITFAILS;
     }
   }
@@ -338,6 +350,22 @@ void tst_data_slices(rtt_dsxx::ScalarUnitTest &ut) {
       }
     }
   }
+
+  std::vector<double> etemp_pts = Cdata->get_etemp_pts();
+  // get the slice of data corresponding to electron temperature region 0:
+  std::vector<double> slice2 = Cdata->get_etemp_data(0);
+
+  // get the slice of data corresponding to electron temperature region 1:
+  std::vector<double> slice3 = Cdata->get_etemp_data(1);
+
+  // check the returned data against the origrp_bdsal values
+  if (!soft_equiv(slice2[0], etemp_pts[0])) {
+    ITFAILS;
+  }
+  if (!soft_equiv(slice3[0], etemp_pts[1])) {
+    ITFAILS;
+  }
+
   if (ut.numFails == 0) {
     PASSMSG("All ComptonData large data slices returned correctly.");
   } else {
