@@ -31,12 +31,9 @@ public:
   //! Destructor
   ~ComptonFile();
 
-  //! Public interface to compton library reader
-  //SP_CompData read_csk_data();
+  //! Public interface to compton library reader-- returns a smart pointer
+  //! to the data container
   SP_CompData read_mg_data();
-
-  //! Public interface to compton library reader
-  //SP_CompData read_lagrange_csk_data();
 
 private:
   // name of the file to be read
@@ -47,18 +44,6 @@ private:
 
   // flag for binary file (defaults to true in constructor)
   bool binary;
-
-  // read the csk library in binary format
-  /*SP_CompData read_binary_csk_data();
-
-  // read the csk library in ascii format
-  SP_CompData read_ascii_csk_data();
-
-  // read the lagrange csk library in ascii format
-  SP_CompData read_lagrange_ascii_csk_data();
-
-  // read the lagrange csk library in binary format
-  SP_CompData read_lagrange_binary_csk_data();*/
 
   SP_CompData read_mg_library_ascii(std::string &);
   SP_CompData read_mg_library_binary(std::string &);

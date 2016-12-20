@@ -18,33 +18,45 @@
 
 namespace rtt_compton {
 
+// constructor
 ComptonFile::ComptonFile(std::string &file_, bool binary_)
     : libfile(file_), binary(binary_) {}
 
+// destructor
 ComptonFile::~ComptonFile() {}
 
-// Interface to lagrange csk data read:
+// Interface to lagrange csk data read-- selects appropriate internal method
+// to read either an ascii or binary library
 rtt_dsxx::SP<ComptonData> ComptonFile::read_mg_data() {
   // return value
   SP_CompData Cdata;
+
   if (binary) {
     Cdata = read_mg_library_binary(libfile);
   } else {
     Cdata = read_mg_library_ascii(libfile);
   }
 
+  // return the data pointer:
   return Cdata;
 }
 
+// read a binary library of multigroup moments
 rtt_dsxx::SP<ComptonData>
 ComptonFile::read_mg_library_binary(std::string &infile) {
-  {
-    std::ostringstream msg;
-    std::cout << "Binary read not implemented yet!" << std::endl;
-    exit(1);
-  }
+  Insist(0, "Binary read not implemented yet!");
+
+  // these prevent unused variable warnings:
+  // initialize data container for the "raw" csk values:
+  std::ifstream bin_lib;
+  bin_lib.open(infile, std::ios::binary);
+  bin_lib.close();
+
+  SP_CompData Cdata(new ComptonData(0, 0, 0));
+  return Cdata;
 }
 
+// read an ascii library of multigroup moments
 rtt_dsxx::SP<ComptonData>
 ComptonFile::read_mg_library_ascii(std::string &infile) {
   std::cout << "Reading multigroup CSK library from ascii file: " << infile
@@ -55,9 +67,7 @@ ComptonFile::read_mg_library_ascii(std::string &infile) {
   ascii_lib.open(infile);
 
   // check file for "openness":
-  if (!ascii_lib.is_open()) {
-    std::cout << "Unable to open the specified input file!" << std::endl;
-  }
+  Ensure(ascii_lib.is_open());
 
   // FIRST read the number of electron temp break points and sub points,
   // the number of groups, and the number of legendre moments:
@@ -67,31 +77,23 @@ ComptonFile::read_mg_library_ascii(std::string &infile) {
 
   size_t netempbp;
   data_sizes >> netempbp;
-  if (data_sizes.fail()) {
-    Insist(0, "Failed read!");
-  }
-  std::cout << "number of etemp bps = " << netempbp << std::endl;
+  Ensure(!data_sizes.fail());
+  Check(netempbp > 0);
 
   size_t netemp;
   data_sizes >> netemp;
-  if (data_sizes.fail()) {
-    Insist(0, "Failed read!");
-  }
-  std::cout << "number of etemp evals = " << netemp << std::endl;
+  Ensure(!data_sizes.fail());
+  Check(netemp > 0);
 
   size_t ngrp;
   data_sizes >> ngrp;
-  if (data_sizes.fail()) {
-    Insist(0, "Failed read!");
-  }
-  std::cout << "number of freq groups = " << ngrp << std::endl;
+  Ensure(!data_sizes.fail());
+  Check(ngrp > 0);
 
   size_t nleg;
   data_sizes >> nleg;
-  if (data_sizes.fail()) {
-    Insist(0, "Failed read!");
-  }
-  std::cout << "number of leg moments = " << nleg << std::endl;
+  Ensure(!data_sizes.fail());
+  Check(nleg > 0);
 
   // initialize data container for the "raw" csk values:
   SP_CompData Cdata(new ComptonData(netemp, ngrp, nleg));
@@ -103,9 +105,8 @@ ComptonFile::read_mg_library_ascii(std::string &infile) {
   std::stringstream etemp_bps(line);
   for (size_t a = 0; a < netempbp; a++) {
     etemp_bps >> etemp_bp;
-    if (etemp_bps.fail()) {
-      Insist(0, "Failed read!");
-    }
+    Ensure(!etemp_bps.fail());
+    Check(etemp_bp > 0.0);
     etempbps.push_back(etemp_bp);
   }
 
@@ -116,9 +117,8 @@ ComptonFile::read_mg_library_ascii(std::string &infile) {
   std::stringstream grp_bds(line);
   for (size_t a = 0; a <= ngrp; a++) {
     grp_bds >> grpbd;
-    if (grp_bds.fail()) {
-      Insist(0, "Failed read!");
-    }
+    Ensure(!grp_bds.fail());
+    Check(grpbd > 0.0);
     grpbds.push_back(grpbd);
   }
 
@@ -140,7 +140,7 @@ ComptonFile::read_mg_library_ascii(std::string &infile) {
     std::stringstream etemp_pts(line);
     etemp_pts >> etemp_pt;
     if (etemp_pts.fail()) {
-      Insist(0, "Failed read!");
+      Insist(0, "Failed electron temperature read!");
     }
     etemppts.push_back(etemp_pt);
 
@@ -154,20 +154,16 @@ ComptonFile::read_mg_library_ascii(std::string &infile) {
         std::stringstream data_line(line);
         data_line >> gin;
         data_line >> gout;
-        std::cout << "gin and out " << gin << " " << gout << std::endl;
         // write all of the legendre moments for this g in/g out/etemp
         for (size_t e = 0; e < nleg; e++) {
           double data_point;
           data_line >> data_point;
-          if (data_line.fail()) {
-            Insist(0, "Failed read!");
-          }
+          Ensure(!data_line.fail());
           mg_csk_data[b][c][d][e] = data_point;
-          std::cout << "data point: " << data_point << std::endl;
         }
       }
     }
-    // get a line and then toss it (blank)
+    // get a line and then toss it (blank for human-readability)
     getline(ascii_lib, line);
   }
 
