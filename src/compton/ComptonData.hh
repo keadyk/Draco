@@ -26,7 +26,7 @@ private:
   //! Group boundaries of library:
   std::vector<double> group_bounds;
 
-  //! number of legendre moments, frequency groups, interp points per etemp:
+  //! number of legendre moments, frequency groups
   size_t n_leg, n_grp;
 
   //! Raw CSK data in electron temperature, g in, g out,
@@ -60,6 +60,8 @@ public:
 
   size_t get_n_etemp_pts() { return etemp_pts.size(); }
 
+  size_t get_n_grps() { return n_grp; }
+
   size_t get_n_leg() { return n_leg; }
 
   std::vector<double> get_etemp_breakpts() { return etemp_breakpts; }
@@ -77,6 +79,8 @@ public:
   size_t get_n_etemp_breakpts() const { return etemp_breakpts.size(); }
 
   size_t get_n_etemp_pts() const { return etemp_pts.size(); }
+
+  size_t get_n_grps() const { return n_grp; }
 
   size_t get_n_leg() const { return n_leg; }
 
@@ -97,18 +101,20 @@ public:
   // SETTERS ---------------------------------------------------------------//
   //------------------------------------------------------------------------//
   //------------------------------------------------------------------------//
-
+  // set all of the mg moments of the CSK:
   void set_csk_data(
       const std::vector<std::vector<std::vector<std::vector<double>>>> &data) {
     csk_data = data;
   }
 
+  // set the evaluation points in frequency and electron temperature:
   void set_evalpts(const std::vector<double> &etempdata,
                    const std::vector<double> &groupdata) {
     etemp_pts = etempdata;
     group_bounds = groupdata;
   }
 
+  // set the electron temperature breakpoints
   void set_breakpts(const std::vector<double> &etempdata) {
     etemp_breakpts = etempdata;
   }
@@ -118,7 +124,7 @@ public:
   // DATA SUBSET ACCESSORS -------------------------------------------------//
   //------------------------------------------------------------------------//
   //------------------------------------------------------------------------//
-  // get all csk data for a particular etemp interpolation regions:
+  // get all csk data for a particular etemp interpolation region:
   std::vector<std::vector<std::vector<std::vector<double>>>>
   get_csk_data(const size_t region) const {
     // get the number of local electron temperature points:
@@ -132,7 +138,7 @@ public:
     }
     return csk_subset;
   }
-
+  // get all csk data for an etemp interpolation region (non-const version)
   std::vector<std::vector<std::vector<std::vector<double>>>>
   get_csk_data(const size_t region) {
     // get the number of local electron temperature points:
@@ -157,7 +163,7 @@ public:
     }
     return etemp_data;
   }
-
+  // get all etemp data for a particular interpolation regions: (non-const)
   std::vector<double> get_etemp_data(const size_t region) {
     size_t ppr_etemp = etemp_pts.size() / (etemp_breakpts.size() - 1);
     std::vector<double> etemp_data(ppr_etemp, 0.0);
