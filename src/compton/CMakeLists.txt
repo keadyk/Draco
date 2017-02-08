@@ -1,23 +1,30 @@
 #-----------------------------*-cmake-*----------------------------------------#
-# file   compton/CMakeLists.txt
-# author Kendra Keady
-# date   2016 Oct 14
-# brief  Generate build project files for compton.
-# note   Copyright (C) 2010-2016, Los Alamos National Security, LLC.
+# file   src/compton/CMakeLists.txt
+# brief  Instructions for building cdi_eospac Makefiles.
+# note   Copyright (C) 2016 Los Alamos National Security, LLC.
 #        All rights reserved.
 #------------------------------------------------------------------------------#
-# $Id$
+# $Id: CMakeLists.txt 6732 2012-09-05 22:28:18Z kellyt $
 #------------------------------------------------------------------------------#
 cmake_minimum_required(VERSION 3.0.0)
 project( compton CXX )
 
+##---------------------------------------------------------------------------##
+# Requires EOSPAC
+##---------------------------------------------------------------------------##
+find_package( NWA QUIET )
+set_package_properties( NWA PROPERTIES
+   DESCRIPTION "Access multigroup Compton scattering data."
+   TYPE OPTIONAL
+   PURPOSE "Required for bulding the compton component."
+   )
+
+if( NWA_FOUND )
 # ---------------------------------------------------------------------------- #
 # Source files
 # ---------------------------------------------------------------------------- #
 
-file( GLOB template_implementations *.t.hh *.i.hh )
 file( GLOB sources *.cc )
-file( GLOB explicit_instantiations *_pt.cc )
 file( GLOB headers *.hh )
 
 # Make the header files available in the IDE.
@@ -30,10 +37,13 @@ endif()
 # ---------------------------------------------------------------------------- #
 
 include_directories(
-   ${PROJECT_SOURCE_DIR}       # sources
-   ${draco_src_dir_SOURCE_DIR} # ds++ header files
-   ${dsxx_BINARY_DIR}          # ds++/config.h
-   )
+   ${PROJECT_SOURCE_DIR}      # component headers
+   ${PROJECT_BINARY_DIR}      # cdi_eospac/config.h
+   ${PROJECT_SOURCE_DIR}/..   # ds++ and cdi header files
+   ${dsxx_BINARY_DIR}         # ds++/config.h
+   ${ode_BINARY_DIR}          # ode/config.h
+   ${NWA_INCLUDE_DIR}
+)
 
 # ---------------------------------------------------------------------------- #
 # Build package library
@@ -41,25 +51,25 @@ include_directories(
 
 add_component_library(
    TARGET       Lib_compton
-   TARGET_DEPS  "Lib_units;GSL::gsl"
-   LIBRARY_NAME ${PROJECT_NAME}
+   LIBRARY_NAME compton
    SOURCES      "${sources}"
-)
+   VENDOR_LIST "NWA"
+   VENDOR_LIBS "${NWA_LIBRARY}"
+   VENDOR_INCLUDE_DIRS "${NWA_INCLUDE_DIR}" )
 
 # ---------------------------------------------------------------------------- #
 # Installation instructions
 # ---------------------------------------------------------------------------- #
 
-install( TARGETS Lib_compton EXPORT draco-targets DESTINATION ${DBSCFGDIR}lib )
-install( FILES ${headers} ${template_implementations} 
-         DESTINATION ${DBSCFGDIR}include/compton )
+install( TARGETS Lib_compton  EXPORT draco-targets DESTINATION ${DBSCFGDIR}lib )
+install( FILES ${headers} DESTINATION ${DBSCFGDIR}include/compton )
 
 # ---------------------------------------------------------------------------- #
 # Unit tests
 # ---------------------------------------------------------------------------- #
 
 if( BUILD_TESTING )
-   add_subdirectory( test )
+  add_subdirectory( test )
 endif()
 
 # ---------------------------------------------------------------------------- #
@@ -67,3 +77,5 @@ endif()
 # ---------------------------------------------------------------------------- #
 
 process_autodoc_pages()
+
+endif() # NWA_FOUND

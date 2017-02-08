@@ -12,12 +12,9 @@ project( compton_test CXX )
 # Source files
 # ---------------------------------------------------------------------------- #
 
-set( test_sources
-  tstComptonFile.cc
-  tstComptonInterp.cc
-  tstComptonData.cc
-  )
-file( GLOB compton_data *.compton )
+ set( test_sources
+  tCompton_NWA.cc )
+ file( GLOB compton_data *.compton )
 
 ##---------------------------------------------------------------------------##
 ## Copy data files
@@ -47,11 +44,7 @@ add_scalar_tests(
   SOURCES "${test_sources}"
   DEPS    "Lib_compton" )
 
-#include( ApplicationUnitTest )
-#add_app_unit_test(
-#  DRIVER    ${CMAKE_CURRENT_SOURCE_DIR}/tIpcress_Interpreter.cmake
-#  APP       $<TARGET_FILE_DIR:Exe_Ipcress_Interpreter>/$<TARGET_FILE_NAME:Exe_Ipcress_Interpreter>
-#  TEST_ARGS "Al_BeCu.ipcress"
-#  STDINFILE "${PROJECT_SOURCE_DIR}/IpcressInterpreter.stdin"
-#  GOLDFILE  "${PROJECT_SOURCE_DIR}/Ipcress_Interpreter-Al_BeCu.ipcress.gold"
-#  )
+provide_aux_files(
+   FILES    "${compton_data}"
+   SRC_EXT  ".compton"
+   DEST_EXT ".compton" )
