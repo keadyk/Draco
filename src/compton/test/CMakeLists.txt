@@ -31,10 +31,12 @@ include_directories(
 # Build Unit tests
 # ---------------------------------------------------------------------------- #
 
-add_scalar_tests(
+add_parallel_tests(
   SOURCES "${test_sources}"
   DEPS    "Lib_compton"
-  LABEL   "nomemcheck" )
+  LABEL   "nomemcheck"
+  PE_LIST   "1"
+  MPI_PLUS_OMP )
 
 #------------------------------------------------------------------------------#
 # Copy data files
