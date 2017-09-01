@@ -291,22 +291,6 @@ void compton_build_test(rtt_dsxx::UnitTest &ut) {
               << std::endl;
   }
 
-  // check that the file was constructed with the correct name, and
-  // that it's open-able:
-  if (!std::ifstream("MG_lib_20_keV_to_60_keV_4_groups").good()) {
-    ITFAILS;
-  } else { // remove the file-- we don't actually want it sitting around...
-    std::remove("MG_lib_20_keV_to_60_keV_4_groups");
-    std::cout << "Successfully wrote MG file -- deleting! " << std::endl;
-  }
-  if (!std::ifstream("MG_lib_20_keV_to_60_keV_4_groups_nu_ratios").good()) {
-    ITFAILS;
-  } else { // remove the file-- we don't actually want it sitting around...
-    std::remove("MG_lib_20_keV_to_60_keV_4_groups_nu_ratios");
-    std::cout << "Successfully wrote MG nu_ratio file -- deleting! "
-              << std::endl;
-  }
-
   if (ut.numFails == 0) {
     PASSMSG("Successfully built a CSK_generator mg library.");
   } else {
